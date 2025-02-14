@@ -1,0 +1,10 @@
+build/
+CMakeUserPresets.json
+
+# lsp
+compile_commands.json
+.cache/
+
+# vcpkg
+vcpkg_installed/
+
