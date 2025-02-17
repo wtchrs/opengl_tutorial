@@ -12,8 +12,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # vcpkg packages
 find_package(spdlog CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(glad CONFIG REQUIRED)
 
-set(WINDOW_NAME "Hello, OpenGL!")
+set(WINDOW_NAME "First OpenGL Example")
 # set(WINDOW_WIDTH 640)
 # set(WINDOW_HEIGHT 480)
 set(WINDOW_WIDTH 960)
@@ -22,7 +23,11 @@ set(WINDOW_HEIGHT 540)
 # targets
 file(GLOB_RECURSE SOURCES src/main.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog glfw)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    spdlog::spdlog
+    glfw
+    glad::glad
+)
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     WINDOW_NAME="${WINDOW_NAME}"
     WINDOW_WIDTH=${WINDOW_WIDTH}
