@@ -1,8 +1,20 @@
 # OpenGL Learning
 
-## Get started
+## Getting Started
 
-Ensure that `vcpkg` is installed on your computer.
+Clone this repository:
+
+```sh
+git clone https://github.com/wtchrs/opengl_tutorial
+cd opengl_tutorial
+```
+
+Clone and bootstrap `vcpkg` (skip if you are using the global installation):
+
+```sh
+git clone --depth=1 https://github.com/microsoft/vcpkg
+./vcpkg/bootstrap-vcpkg.sh
+```
 
 Add the `CMakeUserPresets.json` file to the project root directory:
 
@@ -14,14 +26,14 @@ Add the `CMakeUserPresets.json` file to the project root directory:
       "name": "default",
       "inherits": "vcpkg",
       "environment": {
-        "VCPKG_ROOT": "<path to vcpkg>"
+        "VCPKG_ROOT": "${sourceDir}/vcpkg"
       }
     }
   ]
 }
 ```
 
-`configurePresets[0].environment.VCPKG_ROOT` is not necessary if you have already added this as an environment variable.
+Adjust the `environment` setting to suit your system.
 
 Run the following commands to build and launch this project:
 
@@ -31,5 +43,5 @@ cmake --build build
 ./build/opengl_tutorial
 ```
 
-If you want to know more about these `vcpkg` and `cmake` settings, visit https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-bash
+For more details on configuring `vcpkg` and `cmake`, visit https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-bash
 
