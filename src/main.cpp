@@ -1,10 +1,8 @@
-#include <memory>
 #include <spdlog/spdlog.h>
 // glad/glad.h must be included before including GLFW/glfw3.h.
 #include <glad/glad.h>
 #include <glfw/glfw3.h>
-#include "glex/program.h"
-#include "glex/shader.h"
+#include "glex/context.h"
 
 void onFrameBufferSizeChanged(GLFWwindow *window, int width, int height);
 void onKeyEvent(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -46,31 +44,28 @@ int main() {
     auto glVersion = glGetString(GL_VERSION);
     SPDLOG_INFO("OpenGL context version: {}", reinterpret_cast<const char *>(glVersion));
 
-    // Load and compile shaders.
-    std::shared_ptr<Shader> vertex_shader = Shader::create_from_file("./shader/simple.vs", GL_VERTEX_SHADER);
-    std::shared_ptr<Shader> fragment_shader = Shader::create_from_file("./shader/simple.fs", GL_FRAGMENT_SHADER);
-    SPDLOG_INFO("Vertex shader id: {}", vertex_shader->get());
-    SPDLOG_INFO("Fragment shader id: {}", fragment_shader->get());
-
-    // Link pipeline program.
-    auto program = Program::create({vertex_shader, fragment_shader});
-    SPDLOG_INFO("Program id: {}", program->get());
+    // `Context::create()` will load and compile shaders and link a pipeline program.
+    auto context = Context::create();
+    if (!context) {
+        SPDLOG_ERROR("Failed to create context object");
+        glfwTerminate();
+        return -1;
+    }
 
     // Register event handlers.
     onFrameBufferSizeChanged(window, WINDOW_WIDTH, WINDOW_HEIGHT);
     glfwSetFramebufferSizeCallback(window, onFrameBufferSizeChanged);
     glfwSetKeyCallback(window, onKeyEvent);
 
-    // Set clear color.
-    glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
-
     SPDLOG_INFO("Start main loop");
     while (!glfwWindowShouldClose(window)) {
         // glfwPollEvents();
         glfwWaitEvents();
-        glClear(GL_COLOR_BUFFER_BIT); // Clear buffer as clear color.
+        context->render();
         glfwSwapBuffers(window);
     }
+
+    context.reset();
 
     glfwTerminate();
     return 0;

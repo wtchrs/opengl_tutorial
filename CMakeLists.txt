@@ -26,6 +26,7 @@ file(GLOB_RECURSE SOURCES
     src/common.cpp
     src/shader.cpp
     src/program.cpp
+    src/context.cpp
 )
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)
