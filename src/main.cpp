@@ -1,11 +1,10 @@
+#include <memory>
 #include <spdlog/spdlog.h>
-
-// clang-format off
-// Prevent reordering headers.
 // glad/glad.h must be included before including GLFW/glfw3.h.
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
-// clang-format on
+#include <glfw/glfw3.h>
+#include "glex/program.h"
+#include "glex/shader.h"
 
 void onFrameBufferSizeChanged(GLFWwindow *window, int width, int height);
 void onKeyEvent(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -35,14 +34,27 @@ int main() {
     }
     glfwMakeContextCurrent(window);
 
+    // Load OpenGl functions using GLAD.
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         SPDLOG_ERROR("Failed to initialize glad");
         glfwTerminate();
         return -1;
     }
 
+    // OpenGL functions can be called from here.
+
     auto glVersion = glGetString(GL_VERSION);
     SPDLOG_INFO("OpenGL context version: {}", reinterpret_cast<const char *>(glVersion));
+
+    // Load and compile shaders.
+    std::shared_ptr<Shader> vertex_shader = Shader::create_from_file("./shader/simple.vs", GL_VERTEX_SHADER);
+    std::shared_ptr<Shader> fragment_shader = Shader::create_from_file("./shader/simple.fs", GL_FRAGMENT_SHADER);
+    SPDLOG_INFO("Vertex shader id: {}", vertex_shader->get());
+    SPDLOG_INFO("Fragment shader id: {}", fragment_shader->get());
+
+    // Link pipeline program.
+    auto program = Program::create({vertex_shader, fragment_shader});
+    SPDLOG_INFO("Program id: {}", program->get());
 
     // Register event handlers.
     onFrameBufferSizeChanged(window, WINDOW_WIDTH, WINDOW_HEIGHT);

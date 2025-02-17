@@ -14,15 +14,21 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 
-set(WINDOW_NAME "First OpenGL Example")
+set(WINDOW_NAME "OpenGL Example")
 # set(WINDOW_WIDTH 640)
 # set(WINDOW_HEIGHT 480)
 set(WINDOW_WIDTH 960)
 set(WINDOW_HEIGHT 540)
 
 # targets
-file(GLOB_RECURSE SOURCES src/main.cpp)
+file(GLOB_RECURSE SOURCES
+    src/main.cpp
+    src/common.cpp
+    src/shader.cpp
+    src/program.cpp
+)
 add_executable(${PROJECT_NAME} ${SOURCES})
+target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog
     glfw
