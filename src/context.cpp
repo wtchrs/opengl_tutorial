@@ -7,8 +7,10 @@
 std::unique_ptr<Context> Context::create() {
     auto context = std::unique_ptr<Context>{new Context{}};
     if (!context->init()) {
+        SPDLOG_ERROR("Failed to create context.");
         return nullptr;
     }
+    SPDLOG_INFO("Context has been created.");
     return std::move(context);
 }
 
@@ -44,20 +46,17 @@ bool Context::init() {
     index_buffer_ = Buffer::create_with_data(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(indices));
 
     // Load and compile shaders.
-    std::shared_ptr<Shader> vertex_shader = Shader::create_from_file("./shader/simple.vs", GL_VERTEX_SHADER);
-    std::shared_ptr<Shader> fragment_shader = Shader::create_from_file("./shader/simple.fs", GL_FRAGMENT_SHADER);
+    std::shared_ptr vertex_shader = Shader::create_from_file("./shader/simple.vs", GL_VERTEX_SHADER);
+    std::shared_ptr fragment_shader = Shader::create_from_file("./shader/simple.fs", GL_FRAGMENT_SHADER);
     if (!vertex_shader || !fragment_shader) {
         return false;
     }
-    SPDLOG_INFO("Vertex shader id: {}", vertex_shader->get());
-    SPDLOG_INFO("Fragment shader id: {}", fragment_shader->get());
 
     // Link program.
     program_ = Program::create({vertex_shader, fragment_shader});
     if (!program_) {
         return false;
     }
-    SPDLOG_INFO("Program id: {}", program_->get());
 
     // Set clear color.
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);

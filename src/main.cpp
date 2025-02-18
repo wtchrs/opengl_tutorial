@@ -39,12 +39,12 @@ int main() {
         return -1;
     }
 
-    // OpenGL functions can be called from here.
+    // OpenGL functions can be called above here.
 
     auto glVersion = glGetString(GL_VERSION);
     SPDLOG_INFO("OpenGL context version: {}", reinterpret_cast<const char *>(glVersion));
 
-    // `Context::create()` will load and compile shaders and link a pipeline program.
+    // `Context::create()` will load shaders, compile shaders, and link a pipeline program.
     auto context = Context::create();
     if (!context) {
         SPDLOG_ERROR("Failed to create context object");

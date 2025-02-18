@@ -8,8 +8,10 @@
 std::unique_ptr<Shader> Shader::create_from_file(const std::string &filename, GLenum shader_type) {
     auto shader = std::unique_ptr<Shader>{new Shader{}};
     if (!shader->load_file(filename, shader_type)) {
+        SPDLOG_ERROR("Failed to create shader.");
         return nullptr;
     }
+    SPDLOG_INFO("Shader has been created: {}", shader->get());
     return std::move(shader);
 }
 

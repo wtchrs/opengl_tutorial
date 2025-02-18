@@ -8,8 +8,10 @@
 std::unique_ptr<Program> Program::create(const std::vector<std::shared_ptr<Shader>> &shaders) {
     auto program = std::unique_ptr<Program>{new Program{}};
     if (!program->link(shaders)) {
+        SPDLOG_ERROR("Failed to create pipeline program.");
         return nullptr;
     }
+    SPDLOG_INFO("Pipeline program has been created: {}", program->get());
     return std::move(program);
 }
 
