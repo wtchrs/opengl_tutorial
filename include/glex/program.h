@@ -45,6 +45,11 @@ public:
         return program_;
     }
 
+    /// # Program::use
+    ///
+    /// Uses the program for rendering using OpenGL `glUseProgram` function.
+    void use() const;
+
 private:
     Program() {}
     bool link(const std::vector<std::shared_ptr<Shader>> &shaders);

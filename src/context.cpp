@@ -69,6 +69,6 @@ void Context::render() {
     // Clear with color that has been defined with `glClearColor`.
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(program_->get());
+    program_->use();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
