@@ -2,9 +2,9 @@
 #define __CONTEXT_H__
 
 
-#include <cstdint>
 #include <memory>
 #include "glex/buffer.h"
+#include "glex/vertex_layout.h"
 #include "program.h"
 
 /// # Context
@@ -13,10 +13,10 @@
 class Context {
     /// The shader program used for rendering.
     std::unique_ptr<Program> program_;
+    /// VAO, Vertex Array Object
+    std::unique_ptr<VertexLayout> vertex_layout_;
     /// VBO, Vertex Buffer Object
     std::unique_ptr<Buffer> vertex_buffer_;
-    /// VAO, Vertex Array Object
-    uint32_t vertex_array_object_{0};
     /// EBO, Element Buffer Object
     std::unique_ptr<Buffer> index_buffer_;
 

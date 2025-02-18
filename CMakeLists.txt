@@ -28,6 +28,7 @@ file(GLOB_RECURSE SOURCES
     src/context.cpp
     src/program.cpp
     src/shader.cpp
+    src/vertex_layout.cpp
 )
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)

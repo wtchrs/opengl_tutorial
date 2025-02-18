@@ -3,6 +3,7 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
+#include "glex/vertex_layout.h"
 
 std::unique_ptr<Context> Context::create() {
     auto context = std::unique_ptr<Context>{new Context{}};
@@ -29,8 +30,7 @@ bool Context::init() {
 
     // Generate VAO, Vertex Array Object.
     // VAO must be generated before VBO generated.
-    glGenVertexArrays(1, &vertex_array_object_);
-    glBindVertexArray(vertex_array_object_);
+    vertex_layout_ = VertexLayout::create();
 
     // Generate VBO, Vertex Buffer Object.
     // GL_ARRAY_BUFFER means VBO.
@@ -38,8 +38,8 @@ bool Context::init() {
     // GL_STATIC_DRAW means that this vertices will not be changed.
     vertex_buffer_ = Buffer::create_with_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertices, sizeof(vertices));
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, nullptr);
+    // Set and enable VAO attribute.
+    vertex_layout_->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
 
     // Generate EBO, Element Buffer Object.
     // GL_ELEMENT_ARRAY_BUFFER means EBO.
