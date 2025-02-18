@@ -23,10 +23,11 @@ set(WINDOW_HEIGHT 540)
 # targets
 file(GLOB_RECURSE SOURCES
     src/main.cpp
+    src/buffer.cpp
     src/common.cpp
-    src/shader.cpp
-    src/program.cpp
     src/context.cpp
+    src/program.cpp
+    src/shader.cpp
 )
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)

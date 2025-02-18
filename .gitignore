@@ -1,9 +1,10 @@
 build/
 CMakeUserPresets.json
 
-# lsp
+# lsp and ide
 compile_commands.json
 .cache/
+.idea/
 
 # vcpkg
 vcpkg/

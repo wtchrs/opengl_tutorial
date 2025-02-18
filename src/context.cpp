@@ -34,18 +34,19 @@ bool Context::init() {
     // GL_ARRAY_BUFFER means VBO.
     // usage in `glBufferData` can be "GL_(STATIC|DYNAMIC|STREAM)_(DRAW|COPY|READ)"
     // GL_STATIC_DRAW means that this vertices will not be changed.
-    glGenBuffers(1, &vertex_buffer_);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    vertex_buffer_ = Buffer::create_with_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertices, sizeof(vertices));
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
 
     // Generate EBO, Element Buffer Object.
     // GL_ELEMENT_ARRAY_BUFFER means EBO.
+    /*
     glGenBuffers(1, &index_buffer_);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    */
+    index_buffer_ = Buffer::create_with_data(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(indices));
 
     // Load and compile shaders.
     std::shared_ptr<Shader> vertex_shader = Shader::create_from_file("./shader/simple.vs", GL_VERTEX_SHADER);
