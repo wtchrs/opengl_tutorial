@@ -37,15 +37,10 @@ bool Context::init() {
     vertex_buffer_ = Buffer::create_with_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertices, sizeof(vertices));
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, nullptr);
 
     // Generate EBO, Element Buffer Object.
     // GL_ELEMENT_ARRAY_BUFFER means EBO.
-    /*
-    glGenBuffers(1, &index_buffer_);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    */
     index_buffer_ = Buffer::create_with_data(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(indices));
 
     // Load and compile shaders.
