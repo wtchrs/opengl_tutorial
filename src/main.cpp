@@ -59,8 +59,8 @@ int main() {
 
     SPDLOG_INFO("Start main loop");
     while (!glfwWindowShouldClose(window)) {
-        // glfwPollEvents();
-        glfwWaitEvents();
+        glfwPollEvents();
+        // glfwWaitEvents();
         context->render();
         glfwSwapBuffers(window);
     }

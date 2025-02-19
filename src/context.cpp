@@ -65,9 +65,18 @@ bool Context::init() {
 }
 
 void Context::render() {
+    auto current_frame = static_cast<float>(glfwGetTime());
+    SPDLOG_TRACE("Render: time: {}", current_frame);
+
     // Clear with color that has been defined with `glClearColor`.
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // program_->use();
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+    float t = sinf(current_frame) * 0.5f + 0.5f;
+    auto loc = glGetUniformLocation(program_->get(), "color");
     program_->use();
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    glUniform4f(loc, t * t, 2.0f * t * (1.0f - t), (1.0f - t) * (1.0f - t), 1.0f);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
