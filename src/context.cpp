@@ -18,10 +18,10 @@ std::unique_ptr<Context> Context::create() {
 bool Context::init() {
     // Declare vertices and indices for drawing a Rectangle.
     float vertices[] = {
-            0.5f,  0.5f,  0.0f, //
-            0.5f,  -0.5f, 0.0f, //
-            -0.5f, -0.5f, 0.0f, //
-            -0.5f, 0.5f,  0.0f, //
+            0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, //
+            0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, //
+            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, //
+            -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, //
     };
     uint32_t indices[] = {
             0, 1, 3, // first triangle
@@ -39,15 +39,16 @@ bool Context::init() {
     vertex_buffer_ = Buffer::create_with_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertices, sizeof(vertices));
 
     // Set and enable VAO attribute.
-    vertex_layout_->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
+    vertex_layout_->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, 0);
+    vertex_layout_->set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, sizeof(float) * 3);
 
     // Generate EBO, Element Buffer Object.
     // GL_ELEMENT_ARRAY_BUFFER means EBO.
     index_buffer_ = Buffer::create_with_data(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(indices));
 
     // Load and compile shaders.
-    std::shared_ptr vertex_shader = Shader::create_from_file("./shader/simple.vs", GL_VERTEX_SHADER);
-    std::shared_ptr fragment_shader = Shader::create_from_file("./shader/simple.fs", GL_FRAGMENT_SHADER);
+    std::shared_ptr vertex_shader = Shader::create_from_file("./shader/per_vertex_color.vs", GL_VERTEX_SHADER);
+    std::shared_ptr fragment_shader = Shader::create_from_file("./shader/per_vertex_color.fs", GL_FRAGMENT_SHADER);
     if (!vertex_shader || !fragment_shader) {
         return false;
     }
@@ -65,18 +66,9 @@ bool Context::init() {
 }
 
 void Context::render() {
-    auto current_frame = static_cast<float>(glfwGetTime());
-    SPDLOG_TRACE("Render: time: {}", current_frame);
-
     // Clear with color that has been defined with `glClearColor`.
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // program_->use();
-    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-
-    float t = sinf(current_frame) * 0.5f + 0.5f;
-    auto loc = glGetUniformLocation(program_->get(), "color");
     program_->use();
-    glUniform4f(loc, t * t, 2.0f * t * (1.0f - t), (1.0f - t) * (1.0f - t), 1.0f);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
