@@ -27,7 +27,7 @@ bool Shader::load_file(const std::string &filename, GLenum shader_type) {
     // Create shader and compile.
     shader_ = glCreateShader(shader_type);
     glShaderSource(shader_, 1, &code_ptr, &code_length);
-    glad_glCompileShader(shader_);
+    glCompileShader(shader_);
 
     // Check if compilation is successful.
     int success = 0;

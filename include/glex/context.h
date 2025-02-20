@@ -2,6 +2,7 @@
 #define __CONTEXT_H__
 
 
+#include <cstdint>
 #include <memory>
 #include "glex/buffer.h"
 #include "glex/vertex_layout.h"
@@ -19,6 +20,8 @@ class Context {
     std::unique_ptr<Buffer> vertex_buffer_;
     /// EBO, Element Buffer Object
     std::unique_ptr<Buffer> index_buffer_;
+    /// Texture
+    uint32_t texture_;
 
 public:
     /// # Context::create
