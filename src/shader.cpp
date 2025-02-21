@@ -11,7 +11,7 @@ std::unique_ptr<Shader> Shader::create_from_file(const std::string &filename, GL
         SPDLOG_ERROR("Failed to create shader.");
         return nullptr;
     }
-    SPDLOG_INFO("Shader has been created: {}", shader->get());
+    SPDLOG_INFO("Shader has been created: \"{}\", id: {}", filename, shader->get());
     return std::move(shader);
 }
 

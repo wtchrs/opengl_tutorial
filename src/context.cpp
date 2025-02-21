@@ -1,6 +1,7 @@
 #include "glex/context.h"
 #include <cstddef>
 #include <cstdint>
+#include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
@@ -52,15 +53,17 @@ bool Context::init() {
     index_buffer_ = Buffer::create_with_data(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(indices));
 
     // Load and compile shaders.
-    std::shared_ptr vertex_shader = Shader::create_from_file("./shader/texture.vs", GL_VERTEX_SHADER);
-    std::shared_ptr fragment_shader = Shader::create_from_file("./shader/texture.fs", GL_FRAGMENT_SHADER);
+    std::shared_ptr vertex_shader = Shader::create_from_file("./shader/transform.vs", GL_VERTEX_SHADER);
+    std::shared_ptr fragment_shader = Shader::create_from_file("./shader/transform.fs", GL_FRAGMENT_SHADER);
     if (!vertex_shader || !fragment_shader) {
+        SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
 
     // Link program.
     program_ = Program::create({vertex_shader, fragment_shader});
     if (!program_) {
+        SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
 
@@ -71,6 +74,7 @@ bool Context::init() {
     auto image1 = Image::load("./image/container.jpg");
     auto image2 = Image::load("./image/awesomeface.png");
     if (!image1 || !image2) {
+        SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
 
@@ -91,6 +95,22 @@ bool Context::init() {
     program_->use();
     glUniform1i(glGetUniformLocation(program_->get(), "tex1"), 0);
     glUniform1i(glGetUniformLocation(program_->get(), "tex2"), 1);
+
+    // Create transform matrix to scale down by 0.5x and rotate 90 degrees.
+    // auto transform = glm::rotate(
+    //         glm::scale(glm::mat4{1.0f}, glm::vec3{0.5f}), // scaling transform before rotation
+    //         glm::radians(45.0f), // 45 degrees
+    //         glm::vec3{0.0f, 0.0f, 0.1f} // rotate axis
+    // );
+    auto transform = glm::rotate(
+            // translation and scaling matrix before rotation
+            glm::scale(glm::translate(glm::mat4{1.0f}, glm::vec3{0.8f, 0.5f, 0.0f}), glm::vec3{0.5f}),
+            glm::radians(60.0f), // 45 degrees for rotation
+            glm::vec3{0.0f, 0.0f, 0.1f} // rotation axis
+    );
+    // Pass transform matrix as OpenGL uniform value.
+    auto transform_loc = glGetUniformLocation(program_->get(), "transform");
+    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
 
     return true;
 }

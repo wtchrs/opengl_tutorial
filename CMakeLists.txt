@@ -13,13 +13,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(spdlog CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 
 set(WINDOW_NAME "OpenGL Example")
-# set(WINDOW_WIDTH 640)
-# set(WINDOW_HEIGHT 480)
-set(WINDOW_WIDTH 960)
-set(WINDOW_HEIGHT 540)
+set(WINDOW_WIDTH 640 CACHE STRING "Window width")
+set(WINDOW_HEIGHT 480 CACHE STRING "Window height")
 
 # source files
 file(GLOB_RECURSE SOURCES
@@ -42,6 +41,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog_header_only
     glfw
     glad::glad
+    glm::glm
 )
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     WINDOW_NAME="${WINDOW_NAME}"
