@@ -2,9 +2,9 @@
 #define __CONTEXT_H__
 
 
-#include <cstdint>
 #include <memory>
 #include "glex/buffer.h"
+#include "glex/texture.h"
 #include "glex/vertex_layout.h"
 #include "program.h"
 
@@ -21,7 +21,7 @@ class Context {
     /// EBO, Element Buffer Object
     std::unique_ptr<Buffer> index_buffer_;
     /// Texture
-    uint32_t texture_;
+    std::unique_ptr<Texture> texture1_, texture2_;
 
 public:
     /// # Context::create
@@ -35,7 +35,7 @@ public:
     /// # Context::render
     ///
     /// Renders the scene using the current OpenGL context.
-    void render();
+    void render() const;
 
 private:
     Context() {}

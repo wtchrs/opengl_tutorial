@@ -28,6 +28,8 @@ public:
     [[nodiscard]]
     static std::unique_ptr<Image> load(const std::string &filepath);
 
+    static std::unique_ptr<Image> create(int width, int height, int channels = 4);
+
     /// # Image::~Image
     ///
     /// Destructor that frees the image data.
@@ -76,6 +78,8 @@ public:
     int get_channels() const {
         return channels_;
     }
+
+    void set_check_image(int grid_x, int grid_y) const;
 
 private:
     /// # Image::Image

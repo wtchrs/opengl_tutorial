@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
 #include "glex/image.h"
+#include "glex/texture.h"
 #include "glex/vertex_layout.h"
 
 std::unique_ptr<Context> Context::create() {
@@ -67,33 +68,34 @@ bool Context::init() {
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
     // Load an image for texture
-    auto image = Image::load("./image/container.jpg");
-    if (!image) {
+    auto image1 = Image::load("./image/container.jpg");
+    auto image2 = Image::load("./image/awesomeface.png");
+    if (!image1 || !image2) {
         return false;
     }
 
     // Generate a texture to use.
-    // Use linear filtering and clamp wrapping.
-    glGenTextures(1, &texture_);
-    glBindTexture(GL_TEXTURE_2D, texture_);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // Use default linear filtering and clamp wrapping.
+    texture1_ = Texture::create();
+    texture1_->set_texture_image(0, *image1);
+    texture2_ = Texture::create();
+    texture2_->set_texture_image(0, *image2);
 
-    // Load texture data from memory to gpu.
-    // internalformat, width, and height are for texture,
-    // and format, type, and pixels are for original image.
-    // format must be the same as original image's format, whereas internalformat does not need to be.
-    glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGB, image->get_width(), image->get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE,
-            image->get_data()
-    );
+    // Bind textures to texture slots.
+    glActiveTexture(GL_TEXTURE0);
+    texture1_->bind();
+    glActiveTexture(GL_TEXTURE1);
+    texture2_->bind();
+
+    // Provide texture slot numbers to uniform locations.
+    program_->use();
+    glUniform1i(glGetUniformLocation(program_->get(), "tex1"), 0);
+    glUniform1i(glGetUniformLocation(program_->get(), "tex2"), 1);
 
     return true;
 }
 
-void Context::render() {
+void Context::render() const {
     // Clear with color that has been defined with `glClearColor`.
     glClear(GL_COLOR_BUFFER_BIT);
 

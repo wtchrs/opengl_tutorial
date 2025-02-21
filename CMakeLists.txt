@@ -30,6 +30,7 @@ file(GLOB_RECURSE SOURCES
     src/image.cpp
     src/program.cpp
     src/shader.cpp
+    src/texture.cpp
     src/vertex_layout.cpp
 )
 

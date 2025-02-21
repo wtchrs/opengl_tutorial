@@ -57,6 +57,9 @@ int main() {
     glfwSetFramebufferSizeCallback(window, onFrameBufferSizeChanged);
     glfwSetKeyCallback(window, onKeyEvent);
 
+    // Enable vsync
+    glfwSwapInterval(1);
+
     SPDLOG_INFO("Start main loop");
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
