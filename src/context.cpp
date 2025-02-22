@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/trigonometric.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
@@ -96,18 +97,36 @@ bool Context::init() {
     glUniform1i(glGetUniformLocation(program_->get(), "tex1"), 0);
     glUniform1i(glGetUniformLocation(program_->get(), "tex2"), 1);
 
-    // Create transform matrix to scale down by 0.5x and rotate 90 degrees.
-    // auto transform = glm::rotate(
-    //         glm::scale(glm::mat4{1.0f}, glm::vec3{0.5f}), // scaling transform before rotation
-    //         glm::radians(45.0f), // 45 degrees
-    //         glm::vec3{0.0f, 0.0f, 0.1f} // rotate axis
-    // );
+    // # Transform matrix
+    // - Model matrix: Local space -> World space
+    // - View matrix: World space -> View space
+    // - Projection matrix: View space -> Canonical space
+    // - MVP matrix: Model-View-Projection matrix
+
+    // Create transform matrix that apply rotation, scaling, and translation.
+    // Each glm transform funtions multiply corresponding transform matrix in left-side.
+    /*
     auto transform = glm::rotate(
-            // translation and scaling matrix before rotation
+            // scaling and translation transform after rotation
             glm::scale(glm::translate(glm::mat4{1.0f}, glm::vec3{0.8f, 0.5f, 0.0f}), glm::vec3{0.5f}),
             glm::radians(60.0f), // 45 degrees for rotation
             glm::vec3{0.0f, 0.0f, 0.1f} // rotation axis
     );
+    */
+
+    // Object is rotated -55 degrees in the x-axis.
+    auto model = glm::rotate(glm::mat4{1.0f}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f});
+    // Camera is -3 units away from the origin in the z-axis.
+    auto view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
+    // Perspective projection in aspect ratio 4:3 and fov 45 degrees.
+    auto projection = glm::perspective(
+            glm::radians(45.0f), // fov
+            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), // aspect ratio
+            0.01f, 10.0f // near and far
+    );
+    // MVP matrix
+    auto transform = projection * view * model;
+
     // Pass transform matrix as OpenGL uniform value.
     auto transform_loc = glGetUniformLocation(program_->get(), "transform");
     glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));

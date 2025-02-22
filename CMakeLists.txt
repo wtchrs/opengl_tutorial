@@ -38,7 +38,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_include_directories(${PROJECT_NAME} PRIVATE ${Stb_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    spdlog::spdlog_header_only
+    spdlog::spdlog
     glfw
     glad::glad
     glm::glm
