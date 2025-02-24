@@ -1,12 +1,12 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <vector>
 #include "glex/common.h"
 #include "glex/image.h"
 #include "glex/texture.h"
@@ -122,72 +122,48 @@ bool Context::init() {
     program_->set_texture("tex1", 0, *texture1_);
     program_->set_texture("tex2", 1, *texture2_);
 
+    // Enable depth test.
+    glEnable(GL_DEPTH_TEST);
+
+    return true;
+}
+
+void Context::render() const {
+    static const std::vector<glm::vec3> cube_positions = {
+            glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
+            glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
+            glm::vec3{1.3f, -2.0f, -2.5f},   glm::vec3{1.5f, 2.0f, -2.5f},  glm::vec3{1.5f, 0.2f, -1.5f},
+            glm::vec3{-1.3f, 1.0f, -1.5f},
+    };
+
+    // Clear with color that has been defined with `glClearColor`.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    program_->use();
+
+    auto current_time = static_cast<float>(glfwGetTime());
+
     // # Transform matrix
     // - Model matrix: Local space -> World space
     // - View matrix: World space -> View space
     // - Projection matrix: View space -> Canonical space
     // - MVP matrix: Model-View-Projection matrix
 
-    // Create transform matrix that apply rotation, scaling, and translation.
-    // Each glm transform funtions multiply corresponding transform matrix in left-side.
-    /*
-    auto transform = glm::rotate(
-            // scaling and translation transform after rotation
-            glm::scale(glm::translate(glm::mat4{1.0f}, glm::vec3{0.8f, 0.5f, 0.0f}), glm::vec3{0.5f}),
-            glm::radians(60.0f), // 45 degrees for rotation
-            glm::vec3{0.0f, 0.0f, 0.1f} // rotation axis
-    );
-    */
+    static const auto projection =
+            glm::perspective(glm::radians(45.0f), (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT, 0.01f, 20.0f);
+    static const auto view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
 
-    // Object is rotated -55 degrees in the x-axis.
-    auto model = glm::rotate(glm::mat4{1.0f}, glm::radians(-55.0f), glm::vec3{1.0f, 0.0f, 0.0f});
-    // Camera is -3 units away from the origin in the z-axis.
-    auto view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
-    // Perspective projection in aspect ratio 4:3 and fov 45 degrees.
-    auto projection = glm::perspective(
-            glm::radians(45.0f), // fov
-            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), // aspect ratio
-            0.01f, 10.0f // near and far
-    );
-    // MVP matrix
-    auto transform = projection * view * model;
+    static const auto rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
 
-    // Pass transform matrix as OpenGL uniform value.
-    program_->set_uniform("transform", transform);
+    // Draw each cubes.
+    for (size_t i = 0; i < cube_positions.size(); ++i) {
+        const glm::vec3 &pos = cube_positions[i];
+        auto model = glm::translate(glm::mat4{1.0f}, pos);
+        model = glm::rotate(model, glm::radians(current_time * 120.0f + 20.0f * i), rotate_direction);
 
-    return true;
-}
+        auto transform = projection * view * model;
+        program_->set_uniform("transform", transform);
 
-void Context::render() const {
-    // Clear with color that has been defined with `glClearColor`.
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
-
-    program_->use();
-
-    auto currentFrame = glfwGetTime();
-
-    // Object is rotating in the x-axis and the y-axis.
-    auto model =
-            glm::rotate(
-                    glm::mat4{1.0f}, glm::radians(400 * sinf((float) currentFrame / 1.1)), glm::vec3{1.0f, 0.0f, 0.0f}
-            ) *
-            glm::rotate(
-                    glm::mat4{1.0f}, glm::radians(400 * sinf((float) currentFrame / 1.7)), glm::vec3{0.0f, 1.0f, 0.0f}
-            );
-    // Camera is -3 units away from the origin in the z-axis.
-    auto view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
-    // Perspective projection in aspect ratio 4:3 and fov 45 degrees.
-    auto projection = glm::perspective(
-            glm::radians(45.0f), // fov
-            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), // aspect ratio
-            0.01f, 10.0f // near and far
-    );
-    // MVP matrix
-    auto transform = projection * view * model;
-
-    // Pass transform matrix as OpenGL uniform value.
-    program_->set_uniform("transform", transform);
-
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+    }
 }
