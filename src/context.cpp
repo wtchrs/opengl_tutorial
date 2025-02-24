@@ -118,15 +118,9 @@ bool Context::init() {
     texture2_->set_texture_image(0, *image2);
 
     // Bind textures to texture slots.
-    glActiveTexture(GL_TEXTURE0);
-    texture1_->bind();
-    glActiveTexture(GL_TEXTURE1);
-    texture2_->bind();
-
-    // Provide texture slot numbers to uniform locations.
     program_->use();
-    glUniform1i(glGetUniformLocation(program_->get(), "tex1"), 0);
-    glUniform1i(glGetUniformLocation(program_->get(), "tex2"), 1);
+    program_->set_texture("tex1", 0, *texture1_);
+    program_->set_texture("tex2", 1, *texture2_);
 
     // # Transform matrix
     // - Model matrix: Local space -> World space
@@ -159,8 +153,7 @@ bool Context::init() {
     auto transform = projection * view * model;
 
     // Pass transform matrix as OpenGL uniform value.
-    auto transform_loc = glGetUniformLocation(program_->get(), "transform");
-    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+    program_->set_uniform("transform", transform);
 
     return true;
 }
@@ -169,6 +162,8 @@ void Context::render() const {
     // Clear with color that has been defined with `glClearColor`.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
+
+    program_->use();
 
     auto currentFrame = glfwGetTime();
 
@@ -192,9 +187,7 @@ void Context::render() const {
     auto transform = projection * view * model;
 
     // Pass transform matrix as OpenGL uniform value.
-    auto transform_loc = glGetUniformLocation(program_->get(), "transform");
-    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+    program_->set_uniform("transform", transform);
 
-    program_->use();
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 }

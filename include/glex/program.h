@@ -3,8 +3,10 @@
 
 
 #include <cstdint>
+#include <glm/fwd.hpp>
 #include <memory>
 #include <vector>
+#include "glex/texture.h"
 #include "shader.h"
 
 /// # Program
@@ -49,6 +51,34 @@ public:
     ///
     /// Uses the program for rendering using OpenGL `glUseProgram` function.
     void use() const;
+
+    /// # Program::set_uniform
+    ///
+    /// Sets an integer uniform value in the shader program.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the uniform variable in the shader.
+    /// - `value`: The integer value to set the uniform to.
+    void set_uniform(const std::string &name, int value) const;
+
+    /// # Program::set_uniform
+    ///
+    /// Sets a matrix uniform value in the shader program.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the uniform variable in the shader.
+    /// - `value`: The `glm::mat4` matrix value to set the uniform to.
+    void set_uniform(const std::string &name, const glm::mat4 &value) const;
+
+    /// # Program::set_texture
+    ///
+    /// Sets a texture uniform value in the shader program and binds the texture to a texture unit.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the uniform variable in the shader.
+    /// - `slot`: The texture slot to bind the texture to.
+    /// - `texture`: The `Texture` object to bind.
+    void set_texture(const std::string &name, int slot, const Texture &texture) const;
 
 private:
     Program() {}
