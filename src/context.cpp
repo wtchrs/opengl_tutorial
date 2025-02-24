@@ -1,4 +1,6 @@
 #include "glex/context.h"
+#include <GLFW/glfw3.h>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <glm/gtc/type_ptr.hpp>
@@ -21,18 +23,48 @@ std::unique_ptr<Context> Context::create() {
 }
 
 bool Context::init() {
-    // Declare vertices and indices for drawing a Rectangle.
+    // Declare vertices and indices for drawing a cube.
     float vertices[] = {
-            0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 3: position, 3: color, 2: texture coordinate
-            0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, //
-            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, //
-            -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, //
+            // 3: position, 2: texture coordinate
+            -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, // bottom
+            -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, //
+            0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, //
+            0.5f,  -0.5f, -0.5f, 1.0f, 1.0f, //
+
+            -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, // back
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, //
+            0.5f,  -0.5f, -0.5f, 1.0f, 0.0f, //
+            0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, //
+
+            0.5f,  0.5f,  -0.5f, 0.0f, 1.0f, // right
+            0.5f,  -0.5f, -0.5f, 0.0f, 0.0f, //
+            0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, //
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f, //
+
+            0.5f,  0.5f,  0.5f,  0.0f, 1.0f, // front
+            0.5f,  -0.5f, 0.5f,  0.0f, 0.0f, //
+            -0.5f, -0.5f, 0.5f,  1.0f, 0.0f, //
+            -0.5f, 0.5f,  0.5f,  1.0f, 1.0f, //
+
+            -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, // left
+            -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, //
+            -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, //
+            -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f, //
+
+            0.5f,  0.5f,  -0.5f, 0.0f, 1.0f, // top
+            0.5f,  0.5f,  0.5f,  0.0f, 0.0f, //
+            -0.5f, 0.5f,  0.5f,  1.0f, 0.0f, //
+            -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f, //
     };
     uint32_t indices[] = {
-            0, 1, 3, // first triangle
-            1, 2, 3, // second triangle
+            0,  1,  2,  0,  2,  3, //
+            4,  5,  6,  4,  6,  7, //
+            8,  9,  10, 8,  10, 11, //
+            12, 13, 14, 12, 14, 15, //
+            16, 17, 18, 16, 18, 19, //
+            20, 21, 22, 20, 22, 23, //
     };
-    size_t stride = 8; // number of floats in one vertex
+    size_t stride = 5; // number of floats in one vertex
 
     // Generate VAO, Vertex Array Object.
     // VAO must be generated before VBO generated.
@@ -46,8 +78,7 @@ bool Context::init() {
 
     // Set and enable VAO attribute.
     vertex_layout_->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * stride, 0);
-    vertex_layout_->set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * stride, sizeof(float) * 3);
-    vertex_layout_->set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * stride, sizeof(float) * 6);
+    vertex_layout_->set_attrib(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * stride, sizeof(float) * 3);
 
     // Generate EBO, Element Buffer Object.
     // GL_ELEMENT_ARRAY_BUFFER means EBO.
@@ -136,8 +167,34 @@ bool Context::init() {
 
 void Context::render() const {
     // Clear with color that has been defined with `glClearColor`.
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    auto currentFrame = glfwGetTime();
+
+    // Object is rotating in the x-axis and the y-axis.
+    auto model =
+            glm::rotate(
+                    glm::mat4{1.0f}, glm::radians(400 * sinf((float) currentFrame / 1.1)), glm::vec3{1.0f, 0.0f, 0.0f}
+            ) *
+            glm::rotate(
+                    glm::mat4{1.0f}, glm::radians(400 * sinf((float) currentFrame / 1.7)), glm::vec3{0.0f, 1.0f, 0.0f}
+            );
+    // Camera is -3 units away from the origin in the z-axis.
+    auto view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
+    // Perspective projection in aspect ratio 4:3 and fov 45 degrees.
+    auto projection = glm::perspective(
+            glm::radians(45.0f), // fov
+            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), // aspect ratio
+            0.01f, 10.0f // near and far
+    );
+    // MVP matrix
+    auto transform = projection * view * model;
+
+    // Pass transform matrix as OpenGL uniform value.
+    auto transform_loc = glGetUniformLocation(program_->get(), "transform");
+    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
 
     program_->use();
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 }
