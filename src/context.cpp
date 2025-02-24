@@ -1,8 +1,8 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
 #include <memory>
@@ -164,11 +164,7 @@ void Context::render() const {
             glm::perspective(glm::radians(45.0f), (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT, 0.01f, 30.0f);
 
     // Calculate view matrix.
-    auto angle = current_time * glm::pi<float>() * 0.5f;
-    auto dist = 10.0f;
-    auto cam_pos = glm::vec3{dist * sinf(angle), 0.0f, dist * cosf(angle)};
-    // auto view = get_view_transform(cam_pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
-    auto view = glm::lookAt(cam_pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
+    auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
 
     static const auto rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
 
@@ -182,5 +178,30 @@ void Context::render() const {
         program_->set_uniform("transform", transform);
 
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+    }
+}
+
+void Context::process_input(GLFWwindow *window) {
+    constexpr auto camera_speed = 0.05f;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        camera_pos_ += camera_speed * camera_front_;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        camera_pos_ -= camera_speed * camera_front_;
+    }
+
+    auto camera_right = -glm::normalize(glm::cross(camera_up_, camera_front_));
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        camera_pos_ += camera_speed * camera_right;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        camera_pos_ -= camera_speed * camera_right;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        camera_pos_ += camera_speed * camera_up_;
+    }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        camera_pos_ -= camera_speed * camera_up_;
     }
 }

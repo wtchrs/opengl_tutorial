@@ -4,9 +4,9 @@
 
 #include <memory>
 #include "glex/buffer.h"
+#include "glex/program.h"
 #include "glex/texture.h"
 #include "glex/vertex_layout.h"
-#include "program.h"
 
 /// # Context
 ///
@@ -23,6 +23,13 @@ class Context {
     /// Texture
     std::unique_ptr<Texture> texture1_, texture2_;
 
+    /// @{
+    /// Camera parameters
+    glm::vec3 camera_pos_{0.0f, 0.0f, 3.0f}; ///< Camera position.
+    glm::vec3 camera_front_{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking.
+    glm::vec3 camera_up_{0.0f, 1.0f, 0.0f}; ///< Camera upvector.
+    /// @}
+
 public:
     /// # Context::create
     ///
@@ -36,6 +43,8 @@ public:
     ///
     /// Renders the scene using the current OpenGL context.
     void render() const;
+
+    void process_input(GLFWwindow *window);
 
 private:
     Context() {}

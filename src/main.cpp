@@ -63,7 +63,7 @@ int main() {
     SPDLOG_INFO("Start main loop");
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        // glfwWaitEvents();
+        context->process_input(window);
         context->render();
         glfwSwapBuffers(window);
     }
