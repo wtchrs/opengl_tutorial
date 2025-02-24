@@ -1,5 +1,6 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <glm/gtc/type_ptr.hpp>
@@ -128,6 +129,15 @@ bool Context::init() {
     return true;
 }
 
+/// Same function already exists in glm library (glm::lookAt)
+static glm::mat4 get_view_transform(const glm::vec3 &position, const glm::vec3 &target, const glm::vec3 &upvector) {
+    auto z = glm::normalize(position - target);
+    auto x = glm::normalize(glm::cross(upvector, z));
+    auto y = glm::cross(z, x);
+    auto cameraMat = glm::mat4{glm::vec4{x, 0.0f}, glm::vec4{y, 0.0f}, glm::vec4{z, 0.0f}, glm::vec4{position, 1.0f}};
+    return glm::inverse(cameraMat);
+}
+
 void Context::render() const {
     static const std::vector<glm::vec3> cube_positions = {
             glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
@@ -149,9 +159,16 @@ void Context::render() const {
     // - Projection matrix: View space -> Canonical space
     // - MVP matrix: Model-View-Projection matrix
 
+    // Projection matrix
     static const auto projection =
-            glm::perspective(glm::radians(45.0f), (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT, 0.01f, 20.0f);
-    static const auto view = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.0f, -3.0f});
+            glm::perspective(glm::radians(45.0f), (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT, 0.01f, 30.0f);
+
+    // Calculate view matrix.
+    auto angle = current_time * glm::pi<float>() * 0.5f;
+    auto dist = 10.0f;
+    auto cam_pos = glm::vec3{dist * sinf(angle), 0.0f, dist * cosf(angle)};
+    // auto view = get_view_transform(cam_pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
+    auto view = glm::lookAt(cam_pos, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
 
     static const auto rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
 
