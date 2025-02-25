@@ -5,6 +5,7 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
+#include <imgui.h>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <vector>
@@ -140,6 +141,25 @@ static glm::mat4 get_view_transform(const glm::vec3 &position, const glm::vec3 &
 }
 
 void Context::render() {
+    // ImGui Components.
+    if (ImGui::Begin("UI")) {
+        if (ImGui::ColorEdit4("Clear color", glm::value_ptr(clear_color_))) {
+            glClearColor(clear_color_.x, clear_color_.y, clear_color_.z, clear_color_.w);
+        }
+        ImGui::Separator();
+        ImGui::Text("Camera");
+        ImGui::DragFloat3("Position", glm::value_ptr(camera_pos_), 0.1f);
+        ImGui::DragFloat("Yaw", &camera_yaw_, 0.5f);
+        ImGui::DragFloat("Pitch", &camera_pitch_, 0.5f, -89.0f, 89.0f);
+        ImGui::Separator();
+        if (ImGui::Button("Reset camera")) {
+            camera_pos_ = CAMERA_POS;
+            camera_yaw_ = CAMERA_YAW;
+            camera_pitch_ = CAMERA_PITCH;
+        }
+    }
+    ImGui::End();
+
     static const std::vector<glm::vec3> cube_positions = {
             glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
             glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
@@ -216,7 +236,8 @@ void Context::reshape(const int width, const int height) {
 }
 
 void Context::mouse_move(const double x, const double y) {
-    if (!camera_rot_control_) return;
+    if (!camera_rot_control_)
+        return;
 
     const glm::vec2 cur{static_cast<float>(x), static_cast<float>(y)};
     const auto delta_pos = cur - prev_mouse_pos_;

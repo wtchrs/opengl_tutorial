@@ -2,8 +2,15 @@
   "dependencies": [
     "glad",
     "glfw3",
+    "glm",
+    {
+      "name": "imgui",
+      "features": [
+        "opengl3-binding",
+        "glfw-binding"
+      ]
+    },
     "spdlog",
-    "stb",
-    "glm"
+    "stb"
   ]
 }

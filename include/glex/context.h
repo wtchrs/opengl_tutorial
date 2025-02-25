@@ -24,22 +24,32 @@ class Context {
     std::unique_ptr<Texture> texture1_, texture2_;
 
     /// @{
+    /// Default camera parameters
+    static constexpr float CAMERA_PITCH{0.0f}; ///< Camera pitch
+    static constexpr float CAMERA_YAW{0.0f}; ///< Camera yaw
+
+    static constexpr glm::vec3 CAMERA_POS{0.0f, 0.0f, 3.0f}; ///< Camera position
+    static constexpr glm::vec3 CAMERA_FRONT{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking
+    static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
+    /// }
+
+    /// @{
     /// Camera parameters
+    float camera_pitch_{CAMERA_PITCH}; ///< Camera pitch
+    float camera_yaw_{CAMERA_YAW}; ///< Camera yaw
 
-    float camera_pitch_{0.0f}; ///< Camera pitch
-    float camera_yaw_{0.0f}; ///< Camera yaw
-
-    glm::vec3 camera_pos_{0.0f, 0.0f, 3.0f}; ///< Camera position
-    glm::vec3 camera_front_{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking
-    glm::vec3 camera_up_{0.0f, 1.0f, 0.0f}; ///< Camera up vector
+    glm::vec3 camera_pos_{CAMERA_POS}; ///< Camera position
+    glm::vec3 camera_front_{CAMERA_FRONT}; ///< Direction that camera is looking
+    glm::vec3 camera_up_{CAMERA_UP}; ///< Camera up vector
 
     bool camera_rot_control_{false}; ///< Camera control flag
     glm::vec2 prev_mouse_pos_{0.0f}; ///< Previous mouse position
-
     /// @}
 
     /// Aspect ratio of window
     float aspect_ratio_{static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT)};
+
+    glm::vec4 clear_color_{0.1f, 0.2f, 0.3f, 0.0f};
 
 public:
     /// # Context::create

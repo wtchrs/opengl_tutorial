@@ -14,3 +14,5 @@ vcpkg_installed/
 # doxygen
 html/
 
+# ImGui
+imgui.ini
