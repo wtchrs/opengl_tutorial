@@ -130,6 +130,7 @@ bool Context::init() {
 }
 
 /// Same function already exists in glm library (glm::lookAt)
+[[maybe_unused]]
 static glm::mat4 get_view_transform(const glm::vec3 &position, const glm::vec3 &target, const glm::vec3 &upvector) {
     auto z = glm::normalize(position - target);
     auto x = glm::normalize(glm::cross(upvector, z));
@@ -138,7 +139,7 @@ static glm::mat4 get_view_transform(const glm::vec3 &position, const glm::vec3 &
     return glm::inverse(cameraMat);
 }
 
-void Context::render() const {
+void Context::render() {
     static const std::vector<glm::vec3> cube_positions = {
             glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
             glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
@@ -159,20 +160,24 @@ void Context::render() const {
     // - Projection matrix: View space -> Canonical space
     // - MVP matrix: Model-View-Projection matrix
 
-    // Projection matrix
-    static const auto projection =
-            glm::perspective(glm::radians(45.0f), (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT, 0.01f, 30.0f);
+    // Calculate camera front direction.
+    camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
+                    glm::rotate(glm::mat4{1.0f}, glm::radians(camera_pitch_), glm::vec3{1.0f, 0.0f, 0.0f}) *
+                    glm::vec4{0.0f, 0.0f, -1.0f, 0.0f};
 
-    // Calculate view matrix.
+    // Projection and view matrix
+    auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.01f, 30.0f);
     auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
 
-    static const auto rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
+    static constexpr auto obj_rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
 
     // Draw each cubes.
     for (size_t i = 0; i < cube_positions.size(); ++i) {
         const glm::vec3 &pos = cube_positions[i];
         auto model = glm::translate(glm::mat4{1.0f}, pos);
-        model = glm::rotate(model, glm::radians(current_time * 120.0f + 20.0f * i), rotate_direction);
+        model = glm::rotate(
+                model, glm::radians(current_time * 120.0f + 20.0f * static_cast<float>(i)), obj_rotate_direction
+        );
 
         auto transform = projection * view * model;
         program_->set_uniform("transform", transform);
@@ -203,5 +208,46 @@ void Context::process_input(GLFWwindow *window) {
     }
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
         camera_pos_ -= camera_speed * camera_up_;
+    }
+}
+
+void Context::reshape(const int width, const int height) {
+    aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
+}
+
+void Context::mouse_move(const double x, const double y) {
+    if (!camera_rot_control_) return;
+
+    const glm::vec2 cur{static_cast<float>(x), static_cast<float>(y)};
+    const auto delta_pos = cur - prev_mouse_pos_;
+
+    constexpr float CAMERA_ROT_SPEED = 0.4f;
+    camera_yaw_ -= delta_pos.x * CAMERA_ROT_SPEED;
+    camera_pitch_ -= delta_pos.y * CAMERA_ROT_SPEED;
+
+    if (camera_yaw_ < 0.0f) {
+        camera_yaw_ += 360.0f;
+    }
+    if (camera_yaw_ > 360.0f) {
+        camera_yaw_ -= 360.0f;
+    }
+    if (camera_pitch_ > 89.0f) {
+        camera_pitch_ = 89.0f;
+    }
+    if (camera_pitch_ < -89.0f) {
+        camera_pitch_ = -89.0f;
+    }
+
+    prev_mouse_pos_ = cur;
+}
+
+void Context::mouse_button(const int button, const int action, const double x, const double y) {
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        if (action == GLFW_PRESS) {
+            prev_mouse_pos_ = glm::vec2{x, y};
+            camera_rot_control_ = true;
+        } else {
+            camera_rot_control_ = false;
+        }
     }
 }

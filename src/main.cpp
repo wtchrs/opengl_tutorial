@@ -6,6 +6,8 @@
 
 void onFrameBufferSizeChanged(GLFWwindow *window, int width, int height);
 void onKeyEvent(GLFWwindow *window, int key, int scancode, int action, int mods);
+void onCursorPos(GLFWwindow *window, double x, double y);
+void onMouseButton(GLFWwindow *window, int button, int action, int mods);
 
 int main() {
     SPDLOG_INFO("Start main");
@@ -52,13 +54,18 @@ int main() {
         return -1;
     }
 
+    // Set user pointer
+    glfwSetWindowUserPointer(window, context.get());
+
     // Register event handlers.
     onFrameBufferSizeChanged(window, WINDOW_WIDTH, WINDOW_HEIGHT);
     glfwSetFramebufferSizeCallback(window, onFrameBufferSizeChanged);
     glfwSetKeyCallback(window, onKeyEvent);
+    glfwSetCursorPosCallback(window, onCursorPos);
+    glfwSetMouseButtonCallback(window, onMouseButton);
 
-    // Enable vsync
-    glfwSwapInterval(1);
+            // Enable vsync
+            glfwSwapInterval(1);
 
     SPDLOG_INFO("Start main loop");
     while (!glfwWindowShouldClose(window)) {
@@ -76,6 +83,9 @@ int main() {
 
 void onFrameBufferSizeChanged(GLFWwindow *window, int width, int height) {
     SPDLOG_INFO("Frame buffer size changed: ({}x{})", width, height);
+    // Call Context::reshape
+    const auto context = static_cast<Context *>(glfwGetWindowUserPointer(window));
+    context->reshape(width, height);
     // Set position and size of OpenGL viewport.
     glViewport(0, 0, width, height);
 }
@@ -94,4 +104,18 @@ void onKeyEvent(GLFWwindow *window, int key, int scancode, int action, int mods)
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
+}
+
+void onCursorPos(GLFWwindow *window, const double x, const double y) {
+    SPDLOG_INFO("Mouse cursor moved: ({}, {})", x, y);
+    const auto context = static_cast<Context *>(glfwGetWindowUserPointer(window));
+    context->mouse_move(x, y);
+}
+
+void onMouseButton(GLFWwindow *window, const int button, const int action, int mods) {
+    double x, y;
+    const auto context = static_cast<Context *>(glfwGetWindowUserPointer(window));
+    glfwGetCursorPos(window, &x, &y);
+    SPDLOG_INFO("Mouse clicked: button={}, action={}, modifiers={}, pos=({}, {})", button, action, mods, x, y);
+    context->mouse_button(button, action, x, y);
 }
