@@ -1,6 +1,7 @@
 #include "glex/program.h"
 #include <cassert>
 #include <cstddef>
+#include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <vector>
@@ -54,6 +55,16 @@ void Program::use() const {
 void Program::set_uniform(const std::string &name, int value) const {
     auto loc = glGetUniformLocation(program_, name.c_str());
     glUniform1i(loc, value);
+}
+
+void Program::set_uniform(const std::string &name, float value) const {
+    auto loc = glGetUniformLocation(program_, name.c_str());
+    glUniform1f(loc, value);
+}
+
+void Program::set_uniform(const std::string &name, const glm::vec3 &value) const {
+    auto loc = glGetUniformLocation(program_, name.c_str());
+    glUniform3fv(loc, 1, glm::value_ptr(value));
 }
 
 void Program::set_uniform(const std::string &name, const glm::mat4 &value) const {

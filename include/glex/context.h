@@ -23,17 +23,24 @@ class Context {
     /// Texture
     std::unique_ptr<Texture> texture1_, texture2_;
 
-    /// @{
-    /// Default camera parameters
+    ///@{
+    /// Default parameters
     static constexpr float CAMERA_PITCH{0.0f}; ///< Camera pitch
     static constexpr float CAMERA_YAW{0.0f}; ///< Camera yaw
 
     static constexpr glm::vec3 CAMERA_POS{0.0f, 0.0f, 3.0f}; ///< Camera position
     static constexpr glm::vec3 CAMERA_FRONT{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking
     static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
-    /// }
 
-    /// @{
+    static constexpr glm::vec3 LIGHT_POS{3.0f, 3.0f, 3.0f};
+    static constexpr glm::vec3 LIGHT_COLOR{1.0f, 1.0f, 1.0f};
+    static constexpr glm::vec3 OBJECT_COLOR{1.0f, 0.5f, 0.0f};
+    static constexpr float AMBIENT_STRENGTH{0.1f};
+    static constexpr float SPECULAR_STRENGTH{0.5f};
+    static constexpr float SPECULAR_SHININESS{32.0f};
+    ///@}
+
+    ///@{
     /// Camera parameters
     float camera_pitch_{CAMERA_PITCH}; ///< Camera pitch
     float camera_yaw_{CAMERA_YAW}; ///< Camera yaw
@@ -44,12 +51,24 @@ class Context {
 
     bool camera_rot_control_{false}; ///< Camera control flag
     glm::vec2 prev_mouse_pos_{0.0f}; ///< Previous mouse position
-    /// @}
+    ///@}
 
     /// Aspect ratio of window
     float aspect_ratio_{static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT)};
 
     glm::vec4 clear_color_{0.1f, 0.2f, 0.3f, 0.0f};
+
+    bool animation_{true};
+
+    ///@{
+    /// Lighting parameters
+    glm::vec3 light_pos_{LIGHT_POS};
+    glm::vec3 light_color_{LIGHT_COLOR};
+    glm::vec3 object_color_{OBJECT_COLOR};
+    float ambient_strength_{AMBIENT_STRENGTH};
+    float specular_strength_{SPECULAR_STRENGTH};
+    float specular_shininess_{SPECULAR_SHININESS};
+    ///@}
 
 public:
     /// # Context::create

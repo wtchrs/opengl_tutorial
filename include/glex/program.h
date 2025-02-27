@@ -2,6 +2,7 @@
 #define __PROGRAM_H__
 
 
+#include "common.h"
 #include <cstdint>
 #include <glm/fwd.hpp>
 #include <memory>
@@ -60,6 +61,24 @@ public:
     /// - `name`: The name of the uniform variable in the shader.
     /// - `value`: The integer value to set the uniform to.
     void set_uniform(const std::string &name, int value) const;
+
+    /// # Program::set_uniform
+    ///
+    /// Sets a float uniform value in the shader program.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the uniform variable in the shader.
+    /// - `value`: The float value to set the uniform to.
+    void set_uniform(const std::string &name, float value) const;
+
+    /// # Program::set_uniform
+    ///
+    /// Sets a vector uniform value in the shader program.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the uniform variable in the shader.
+    /// - `value`: The `glm::vec3` vector value to set the uniform to.
+    void set_uniform(const std::string &name, const glm::vec3 &value) const;
 
     /// # Program::set_uniform
     ///
