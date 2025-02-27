@@ -155,12 +155,17 @@ void Context::render() {
         }
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::DragFloat3("Light position", glm::value_ptr(light_pos_), 0.01f);
-            ImGui::ColorEdit3("Light color", glm::value_ptr(light_color_));
-            ImGui::ColorEdit3("Object color", glm::value_ptr(object_color_));
-            ImGui::SliderFloat("Ambient strength", &ambient_strength_, 0.0f, 1.0f);
-            ImGui::DragFloat("Specular strength", &specular_strength_, 0.01, 0.0f, 1.0f);
-            ImGui::DragFloat("Specular shininess", &specular_shininess_, 0.5f, 1.0f, 256.0f);
+            ImGui::Text("Light");
+            ImGui::DragFloat3("l.position", glm::value_ptr(light_.position), 0.01f);
+            ImGui::ColorEdit3("l.ambient", glm::value_ptr(light_.ambient));
+            ImGui::ColorEdit3("l.diffuse", glm::value_ptr(light_.diffuse));
+            ImGui::ColorEdit3("l.specular", glm::value_ptr(light_.specular));
+            ImGui::Separator();
+            ImGui::Text("Material");
+            ImGui::ColorEdit3("m.ambient", glm::value_ptr(material_.ambient));
+            ImGui::ColorEdit3("m.diffuse", glm::value_ptr(material_.diffuse));
+            ImGui::ColorEdit3("m.specular", glm::value_ptr(material_.specular));
+            ImGui::DragFloat("m.shininess", &material_.shininess, 1.0f, 1.0f, 256.0f);
         }
         ImGui::Separator();
         ImGui::Checkbox("Animation", &animation_);
@@ -169,22 +174,18 @@ void Context::render() {
             camera_pos_ = CAMERA_POS;
             camera_yaw_ = CAMERA_YAW;
             camera_pitch_ = CAMERA_PITCH;
-            light_pos_ = LIGHT_POS;
-            light_color_ = LIGHT_COLOR;
-            object_color_ = OBJECT_COLOR;
-            ambient_strength_ = AMBIENT_STRENGTH;
-            specular_strength_ = SPECULAR_STRENGTH;
-            specular_shininess_ = SPECULAR_SHININESS;
+            light_ = LIGHT;
+            material_ = MATERIAL;
         }
     }
     ImGui::End();
 
     static const std::vector<glm::vec3> cube_positions = {
-            glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
-            glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
-            glm::vec3{1.3f, -2.0f, -2.5f},   glm::vec3{1.5f, 2.0f, -2.5f},  glm::vec3{1.5f, 0.2f, -1.5f},
-            glm::vec3{-1.3f, 1.0f, -1.5f},
-    };
+        glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
+        glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
+        glm::vec3{1.3f, -2.0f, -2.5f},   glm::vec3{1.5f, 2.0f, -2.5f},  glm::vec3{1.5f, 0.2f, -1.5f},
+        glm::vec3{-1.3f, 1.0f, -1.5f},
+};
 
     // Clear with color that has been defined with `glClearColor`.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -214,22 +215,24 @@ void Context::render() {
     program_->use();
 
     // Draw one cube for light position.
-    auto light_model = glm::translate(glm::mat4{1.0f}, light_pos_) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
-    program_->set_uniform("lightPos", light_pos_);
-    program_->set_uniform("lightColor", glm::vec3{1.0f});
-    program_->set_uniform("objectColor", glm::vec3{1.0f});
-    program_->set_uniform("ambientStrength", 1.0f);
+    auto light_model = glm::translate(glm::mat4{1.0f}, light_.position) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
+    program_->set_uniform("light.position", light_.position);
+    program_->set_uniform("light.ambient", light_.diffuse);
+    program_->set_uniform("material.ambient", light_.diffuse);
     program_->set_uniform("modelTransform", light_model);
     program_->set_uniform("transform", projection * view * light_model);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 
     // Restore light settings.
     program_->set_uniform("viewPos", camera_pos_);
-    program_->set_uniform("lightColor", light_color_);
-    program_->set_uniform("objectColor", object_color_);
-    program_->set_uniform("ambientStrength", ambient_strength_);
-    program_->set_uniform("specularStrength", specular_strength_);
-    program_->set_uniform("specularShininess", specular_shininess_);
+    program_->set_uniform("light.position", light_.position);
+    program_->set_uniform("light.ambient", light_.ambient);
+    program_->set_uniform("light.diffuse", light_.diffuse);
+    program_->set_uniform("light.specular", light_.specular);
+    program_->set_uniform("material.ambient", material_.ambient);
+    program_->set_uniform("material.diffuse", material_.diffuse);
+    program_->set_uniform("material.specular", material_.specular);
+    program_->set_uniform("material.shininess", material_.shininess);
 
     // Draw each cubes.
     for (size_t i = 0; i < cube_positions.size(); ++i) {

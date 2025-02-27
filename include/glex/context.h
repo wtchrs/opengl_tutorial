@@ -32,12 +32,31 @@ class Context {
     static constexpr glm::vec3 CAMERA_FRONT{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking
     static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
 
-    static constexpr glm::vec3 LIGHT_POS{3.0f, 3.0f, 3.0f};
-    static constexpr glm::vec3 LIGHT_COLOR{1.0f, 1.0f, 1.0f};
-    static constexpr glm::vec3 OBJECT_COLOR{1.0f, 0.5f, 0.0f};
-    static constexpr float AMBIENT_STRENGTH{0.1f};
-    static constexpr float SPECULAR_STRENGTH{0.5f};
-    static constexpr float SPECULAR_SHININESS{32.0f};
+    struct Light {
+        glm::vec3 position;
+        glm::vec3 ambient;
+        glm::vec3 diffuse;
+        glm::vec3 specular;
+    };
+    static constexpr Light LIGHT{
+            {3.0f, 3.0f, 3.0f},
+            {0.1f, 0.1f, 0.1f},
+            {0.5f, 0.5f, 0.5f},
+            {1.0f, 1.0f, 1.0f},
+    };
+
+    struct Material {
+        glm::vec3 ambient;
+        glm::vec3 diffuse;
+        glm::vec3 specular;
+        float shininess;
+    };
+    static constexpr Material MATERIAL{
+            {1.0f, 0.5f, 0.3f},
+            {1.0f, 0.5f, 0.3f},
+            {0.5f, 0.5f, 0.5f},
+            32.0f,
+    };
     ///@}
 
     ///@{
@@ -62,12 +81,8 @@ class Context {
 
     ///@{
     /// Lighting parameters
-    glm::vec3 light_pos_{LIGHT_POS};
-    glm::vec3 light_color_{LIGHT_COLOR};
-    glm::vec3 object_color_{OBJECT_COLOR};
-    float ambient_strength_{AMBIENT_STRENGTH};
-    float specular_strength_{SPECULAR_STRENGTH};
-    float specular_shininess_{SPECULAR_SHININESS};
+    Light light_ = LIGHT;
+    Material material_ = MATERIAL;
     ///@}
 
 public:
