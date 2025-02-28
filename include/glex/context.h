@@ -82,54 +82,49 @@ class Context {
     ///@}
 
 public:
-    /// # Context::create
+    /// ## Context::create
     ///
     /// Creates and initializes a new `Context` object.
     ///
-    /// ## Returns
-    /// A `Context` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
+    /// @returns `Context` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
     static std::unique_ptr<Context> create();
 
-    /// # Context::render
+    /// ## Context::render
     ///
     /// Renders the scene using the current OpenGL context.
     void render();
 
-    /// # Context::process_input
+    /// ## Context::process_input
     ///
     /// Processes input from the specified GLFW window to update the camera position.
     ///
-    /// ## Parameters
-    /// - `window`: A pointer to the GLFW window from which to process input.
+    /// @param window: A pointer to the GLFW window from which to process input.
     void process_input(GLFWwindow *window);
 
-    /// # Context::reshape
+    /// ## Context::reshape
     ///
     /// Updates the aspect ratio based on the new window dimensions.
     ///
-    /// ## Parameters
-    /// - `width`: The new width of the window.
-    /// - `height`: The new height of the window.
+    /// @param width: The new width of the window.
+    /// @param height: The new height of the window.
     void reshape(int width, int height);
 
-    /// # Context::mouse_move
+    /// ## Context::mouse_move
     ///
     /// Handles mouse movement events to update the camera's orientation.
     ///
-    /// ## Parameters
-    /// - `x`: The current x-coordinate of the mouse cursor.
-    /// - `y`: The current y-coordinate of the mouse cursor.
+    /// @param x: The current x-coordinate of the mouse cursor.
+    /// @param y: The current y-coordinate of the mouse cursor.
     void mouse_move(double x, double y);
 
-    /// # Context::mouse_button
+    /// ## Context::mouse_button
     ///
     /// Handles mouse button events to enable or disable camera rotation control.
     ///
-    /// ## Parameters
-    /// - `button`: The mouse button that was pressed or released.
-    /// - `action`: The action performed (press or release).
-    /// - `x`: The x-coordinate of the mouse cursor at the time of the event.
-    /// - `y`: The y-coordinate of the mouse cursor at the time of the event.
+    /// @param button: The mouse button that was pressed or released.
+    /// @param action: The action performed (press or release).
+    /// @param x: The x-coordinate of the mouse cursor at the time of the event.
+    /// @param y: The y-coordinate of the mouse cursor at the time of the event.
     void mouse_button(int button, int action, double x, double y);
 
 private:

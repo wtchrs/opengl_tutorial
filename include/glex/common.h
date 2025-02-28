@@ -10,29 +10,26 @@
 #include <optional>
 #include <string>
 
-/// # loadTextFile
+/// ## loadTextFile
 ///
 /// Loads the content of a text file.
 ///
-/// ## Parameters
-/// - `filename`: The path to the text file to be loaded.
+/// @param filename: The path to the text file to be loaded.
 ///
-/// ## Returns
-/// An `std::optional<std::string>` containing the content of the file if successful,
+/// @returns
+/// `std::optional<std::string>` containing the content of the file if successful,
 /// or `std::nullopt` if the file could not be loaded.
 std::optional<std::string> load_text_file(const std::string &filename);
 
-/// # get_attenuation_coefficient
+/// ## get_attenuation_coefficient
 ///
 /// Calculates the attenuation coefficients for a given distance.
 ///
-/// ## Parameters
-/// - `dist`: The distance from the light source.
+/// @param dist: The distance from the light source.
 ///
-/// ## Returns
-/// A `glm::vec3` containing the constant, linear, and quadratic attenuation coefficients.
+/// @returns `glm::vec3` containing the constant, linear, and quadratic attenuation coefficients.
 ///
-/// ## Details
+/// #### Details
 /// This function calculates the attenuation coefficients based on the given distance using predefined
 /// linear and quadratic coefficients. The result is a vector containing the constant, linear, and quadratic
 /// attenuation coefficients.

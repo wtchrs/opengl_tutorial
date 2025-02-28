@@ -45,64 +45,57 @@ class Texture {
     const uint32_t texture_;
 
 public:
-    /// # Texture::create
+    /// ## Texture::create
     ///
     /// Creates and initializes a new `Texture` object.
     /// This Texture object has `GL_LINEAR` min and mag filters, and `GL_CLAMP_TO_EDGE` wrap modes as default.
     ///
-    /// ## Returns
-    /// A `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
+    /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
     static std::unique_ptr<Texture> create();
 
-    /// # Texture::~Texture
+    /// ## Texture::~Texture
     ///
     /// Destructor that deletes the OpenGL texture.
     ~Texture();
 
-    /// # Texture::get
+    /// ## Texture::get
     ///
-    /// Returns the OpenGL texture ID.
-    ///
-    /// ## Returns
-    /// The OpenGL texture ID.
+    /// @returns OpenGL texture ID.
     [[nodiscard]]
     uint32_t get() const {
         return texture_;
     }
 
-    /// # Texture::bind
+    /// ## Texture::bind
     ///
     /// Binds the OpenGL texture.
     void bind() const;
 
-    /// # Texture::set_filter
+    /// ## Texture::set_filter
     ///
     /// Sets the texture filtering parameters.
     ///
-    /// ## Parameters
-    /// - `min_filter`: The minifying function used whenever the pixel being textured maps to an area
-    ///                 greater than one texture element.
-    /// - `mag_filter`: The magnification function used whenever the pixel being textured maps to an area
-    ///                 less than or equal to one texture element.
+    /// @param min_filter: The minifying function used whenever the pixel being textured maps to an area
+    ///                    greater than one texture element.
+    /// @param mag_filter: The magnification function used whenever the pixel being textured maps to an area
+    ///                    less than or equal to one texture element.
     void set_filter(int32_t min_filter, int32_t mag_filter) const;
 
     /// # Texture::set_wrap
     ///
     /// Sets the texture wrapping parameters.
     ///
-    /// ## Parameters
-    /// - `s_wrap`: The wrapping mode for texture coordinate `s`.
-    /// - `t_wrap`: The wrapping mode for texture coordinate `t`.
+    /// @param s_wrap: The wrapping mode for texture coordinate `s`.
+    /// @param t_wrap: The wrapping mode for texture coordinate `t`.
     void set_wrap(int32_t s_wrap, int32_t t_wrap) const;
 
     /// # Texture::set_texture_image
     ///
     /// Sets the texture image data.
     ///
-    /// ## Parameters
-    /// - `level`: The level-of-detail number.
+    /// @param level: The level-of-detail number.
     ///            Level 0 is the base image level. Level n is the nth mipmap reduction image.
-    /// - `image`: The `Image` object containing the texture data.
+    /// @param image: The `Image` object containing the texture data.
     void set_texture_image(int32_t level, const Image &image);
 
 private:
