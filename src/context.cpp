@@ -99,24 +99,26 @@ bool Context::init() {
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
     // Load an image for texture
-    auto image1 = Image::load("./image/container.jpg");
-    auto image2 = Image::load("./image/awesomeface.png");
-    if (!image1 || !image2) {
+    const auto diffuse_map_image = Image::load("./image/container2.png");
+    const auto specular_map_image = Image::load("./image/container2_specular.png");
+    if (!diffuse_map_image || !specular_map_image) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
 
-    // Generate a texture to use.
-    // Use default linear filtering and clamp wrapping.
-    texture1_ = Texture::create();
-    texture1_->set_texture_image(0, *image1);
-    texture2_ = Texture::create();
-    texture2_->set_texture_image(0, *image2);
+    program_->use();
+
+    // Generate material textures such as the diffuse map and the specular map.
+    material_.diffuse = Texture::create();
+    material_.diffuse->set_texture_image(0, *diffuse_map_image);
+    material_.specular = Texture::create();
+    material_.specular->set_texture_image(0, *specular_map_image);
 
     // Bind textures to texture slots.
-    program_->use();
-    program_->set_texture("tex1", 0, *texture1_);
-    program_->set_texture("tex2", 1, *texture2_);
+    program_->set_texture(0, *material_.diffuse);
+    program_->set_uniform("material.diffuse", 0);
+    program_->set_texture(1, *material_.specular);
+    program_->set_uniform("material.specular", 1);
 
     // Enable depth test.
     glEnable(GL_DEPTH_TEST);
@@ -155,9 +157,6 @@ void Context::render() {
             ImGui::ColorEdit3("l.specular", glm::value_ptr(light_.specular));
             ImGui::Separator();
             ImGui::Text("Material");
-            ImGui::ColorEdit3("m.ambient", glm::value_ptr(material_.ambient));
-            ImGui::ColorEdit3("m.diffuse", glm::value_ptr(material_.diffuse));
-            ImGui::ColorEdit3("m.specular", glm::value_ptr(material_.specular));
             ImGui::DragFloat("m.shininess", &material_.shininess, 1.0f, 1.0f, 256.0f);
         }
         ImGui::Separator();
@@ -168,7 +167,7 @@ void Context::render() {
             camera_yaw_ = CAMERA_YAW;
             camera_pitch_ = CAMERA_PITCH;
             light_ = LIGHT;
-            material_ = MATERIAL;
+            material_.shininess = 32.0f;
         }
     }
     ImGui::End();
@@ -188,12 +187,6 @@ void Context::render() {
         current_time = static_cast<float>(glfwGetTime());
     }
 
-    // # Transform matrix
-    // - Model matrix: Local space -> World space
-    // - View matrix: World space -> View space
-    // - Projection matrix: View space -> Canonical space
-    // - MVP matrix: Model-View-Projection matrix
-
     // Calculate camera front direction.
     camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
                     glm::rotate(glm::mat4{1.0f}, glm::radians(camera_pitch_), glm::vec3{1.0f, 0.0f, 0.0f}) *
@@ -205,7 +198,7 @@ void Context::render() {
 
     static constexpr auto obj_rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
 
-    // Draw one cube for light position.
+    // Draw one cube with simple_program_ for indicating the light position.
     const auto light_model =
             glm::translate(glm::mat4{1.0f}, light_.position) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
     simple_program_->use();
@@ -213,16 +206,13 @@ void Context::render() {
     simple_program_->set_uniform("transform", projection * view * light_model);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 
-    // Restore light settings.
+    // Set lighting.
     program_->use();
     program_->set_uniform("viewPos", camera_pos_);
     program_->set_uniform("light.position", light_.position);
     program_->set_uniform("light.ambient", light_.ambient);
     program_->set_uniform("light.diffuse", light_.diffuse);
     program_->set_uniform("light.specular", light_.specular);
-    program_->set_uniform("material.ambient", material_.ambient);
-    program_->set_uniform("material.diffuse", material_.diffuse);
-    program_->set_uniform("material.specular", material_.specular);
     program_->set_uniform("material.shininess", material_.shininess);
 
     // Draw each cubes.
@@ -233,7 +223,7 @@ void Context::render() {
                 model, glm::radians(current_time * 120.0f + 20.0f * static_cast<float>(i)), obj_rotate_direction
         );
 
-        auto transform = projection * view * model;
+        auto transform = projection * view * model; // MVP matrix
         program_->set_uniform("modelTransform", model);
         program_->set_uniform("transform", transform);
 

@@ -111,13 +111,14 @@ public:
 
     /// # Program::set_texture
     ///
-    /// Sets a texture uniform value in the shader program and binds the texture to a texture unit.
+    /// Assigns a texture to a texture slot in this shader program.
+    /// After this, the texture can be bound to a uniform variable by passing the slot ID as the second argument of
+    /// `Program::set_uniform(std::string&, int)`.
     ///
     /// ## Parameters
-    /// - `name`: The name of the uniform variable in the shader.
-    /// - `slot`: The texture slot to bind the texture to.
-    /// - `texture`: The `Texture` object to bind.
-    void set_texture(const std::string &name, int slot, const Texture &texture) const;
+    /// - `slot`: The texture slot ID to assign the texture to.
+    /// - `texture`: The `Texture` object to assign.
+    void set_texture(int slot, const Texture &texture) const;
 
 private:
     Program() {}

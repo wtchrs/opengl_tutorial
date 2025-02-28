@@ -12,6 +12,20 @@
 ///
 /// A class that manages the OpenGL context, including shaders and buffer objects.
 class Context {
+    struct Light {
+        glm::vec3 position;
+        glm::vec3 ambient;
+        glm::vec3 diffuse;
+        glm::vec3 specular;
+    };
+
+    struct Material {
+        /// Texture used as diffuse map.
+        std::unique_ptr<Texture> diffuse;
+        std::unique_ptr<Texture> specular;
+        float shininess;
+    };
+
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_;
     /// VAO, Vertex Array Object
@@ -32,30 +46,11 @@ class Context {
     static constexpr glm::vec3 CAMERA_FRONT{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking
     static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
 
-    struct Light {
-        glm::vec3 position;
-        glm::vec3 ambient;
-        glm::vec3 diffuse;
-        glm::vec3 specular;
-    };
     static constexpr Light LIGHT{
             {3.0f, 3.0f, 3.0f},
             {0.1f, 0.1f, 0.1f},
             {0.5f, 0.5f, 0.5f},
             {1.0f, 1.0f, 1.0f},
-    };
-
-    struct Material {
-        glm::vec3 ambient;
-        glm::vec3 diffuse;
-        glm::vec3 specular;
-        float shininess;
-    };
-    static constexpr Material MATERIAL{
-            {1.0f, 0.5f, 0.3f},
-            {1.0f, 0.5f, 0.3f},
-            {0.5f, 0.5f, 0.5f},
-            32.0f,
     };
     ///@}
 
@@ -82,7 +77,7 @@ class Context {
     ///@{
     /// Lighting parameters
     Light light_ = LIGHT;
-    Material material_ = MATERIAL;
+    Material material_{{}, {}, 32.0f};
     ///@}
 
 public:
