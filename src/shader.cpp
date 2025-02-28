@@ -16,7 +16,7 @@ std::unique_ptr<Shader> Shader::create_from_file(const std::string &filename, GL
 }
 
 bool Shader::load_file(const std::string &filename, GLenum shader_type) {
-    auto code = loadTextFile(filename);
+    auto code = load_text_file(filename);
     if (!code) {
         return false;
     }

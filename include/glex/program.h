@@ -88,6 +88,15 @@ public:
     ///
     /// ## Parameters
     /// - `name`: The name of the uniform variable in the shader.
+    /// - `value`: The `glm::vec2` vector value to set the uniform to.
+    void set_uniform(const std::string &name, const glm::vec2 &value) const;
+
+    /// # Program::set_uniform
+    ///
+    /// Sets a vector uniform value in the shader program.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the uniform variable in the shader.
     /// - `value`: The `glm::vec3` vector value to set the uniform to.
     void set_uniform(const std::string &name, const glm::vec3 &value) const;
 

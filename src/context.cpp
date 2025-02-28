@@ -152,6 +152,9 @@ void Context::render() {
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Light");
             ImGui::DragFloat3("l.position", glm::value_ptr(light_.position), 0.01f);
+            ImGui::DragFloat("l.distance(max distance)", &light_.distance, 0.5f, 0.0f, 3000.0f);
+            ImGui::DragFloat3("l.direction", glm::value_ptr(light_.direction), 0.01f);
+            ImGui::DragFloat2("l.cutoff(degree)", glm::value_ptr(light_.cutoff), 0.5f, 0.0f, 180.0f);
             ImGui::ColorEdit3("l.ambient", glm::value_ptr(light_.ambient));
             ImGui::ColorEdit3("l.diffuse", glm::value_ptr(light_.diffuse));
             ImGui::ColorEdit3("l.specular", glm::value_ptr(light_.specular));
@@ -210,6 +213,11 @@ void Context::render() {
     program_->use();
     program_->set_uniform("viewPos", camera_pos_);
     program_->set_uniform("light.position", light_.position);
+    program_->set_uniform("light.attenuation", get_attenuation_coefficient(light_.distance));
+    program_->set_uniform("light.direction", light_.direction);
+    program_->set_uniform(
+            "light.cutoff", glm::cos(glm::radians(glm::vec2{light_.cutoff.x, light_.cutoff.x + light_.cutoff.y}))
+    );
     program_->set_uniform("light.ambient", light_.ambient);
     program_->set_uniform("light.diffuse", light_.diffuse);
     program_->set_uniform("light.specular", light_.specular);

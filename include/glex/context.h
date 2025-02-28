@@ -14,13 +14,16 @@
 class Context {
     struct Light {
         glm::vec3 position;
+        float distance;
+        glm::vec3 direction;
+        glm::vec2 cutoff; // inner cutoff angle, outer offset angle
         glm::vec3 ambient;
         glm::vec3 diffuse;
         glm::vec3 specular;
     };
 
     struct Material {
-        /// Texture used as diffuse map.
+        /// Textures used as lighting maps.
         std::unique_ptr<Texture> diffuse;
         std::unique_ptr<Texture> specular;
         float shininess;
@@ -47,9 +50,7 @@ class Context {
     static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
 
     static constexpr Light LIGHT{
-            {3.0f, 3.0f, 3.0f},
-            {0.1f, 0.1f, 0.1f},
-            {0.5f, 0.5f, 0.5f},
+            {2.0f, 2.0f, 2.0f}, 32.0f, {-1.0f, -1.0f, -1.0f}, {20.0f, 5.0f}, {0.1f, 0.1f, 0.1f}, {0.5f, 0.5f, 0.5f},
             {1.0f, 1.0f, 1.0f},
     };
     ///@}

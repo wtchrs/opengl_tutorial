@@ -15,7 +15,8 @@ void main() {
     gl_Position = transform * vec4(aPos, 1.0);
     texCoord = aTexCoord;
     // Normal vector and position in world space is needed to calculate diffuse light.
-    // `transpose(inverse(modelTransform))` may be replaced with separate uniform variable.
+    // `transpose(inverse(modelTransform))` may be replaced with pre-calculated uniform variable
+    // because it is same across all positions in the same object.
     normal = (transpose(inverse(modelTransform)) * vec4(aNormal, 0.0)).xyz;
     position = (modelTransform * vec4(aPos, 1.0)).xyz;
 }
