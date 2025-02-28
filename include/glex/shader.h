@@ -9,7 +9,7 @@
 ///
 /// A class that encapsulates an OpenGL shader.
 class Shader {
-    uint32_t shader_{0};
+    const uint32_t shader_;
 
 public:
     /// # Shader::create_from_file
@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    Shader() {}
+    explicit Shader(uint32_t shader);
 
     /// # Shader::load_file
     ///
@@ -53,7 +53,7 @@ private:
     ///
     /// ## Returns
     /// `true` if the shader is successfully loaded and compiled, `false` otherwise.
-    bool load_file(const std::string &filename, GLenum shader_type);
+    bool load_file(const std::string &filename) const;
 };
 
 #endif // __SHADER_H__

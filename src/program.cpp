@@ -8,12 +8,16 @@
 #include "glex/common.h"
 
 std::unique_ptr<Program> Program::create(const std::vector<std::shared_ptr<Shader>> &shaders) {
-    auto program = std::unique_ptr<Program>{new Program{}};
+    const auto program_id = glCreateProgram();
+    if (program_id == 0) {
+        SPDLOG_ERROR("Failed to create shader program.");
+    }
+    auto program = std::unique_ptr<Program>{new Program{program_id}};
     if (!program->link(shaders)) {
-        SPDLOG_ERROR("Failed to create pipeline program");
+        SPDLOG_ERROR("Failed to create shader program");
         return nullptr;
     }
-    SPDLOG_INFO("Pipeline program has been created: {}", program->get());
+    SPDLOG_INFO("Shader program has been created: {}", program->get());
     return std::move(program);
 }
 
@@ -22,20 +26,23 @@ Program::create(const std::string &vertex_shader_filename, const std::string &fr
     std::shared_ptr vertex = Shader::create_from_file(vertex_shader_filename, GL_VERTEX_SHADER);
     std::shared_ptr fragment = Shader::create_from_file(frag_shader_filename, GL_FRAGMENT_SHADER);
     if (!vertex || !fragment) {
-        SPDLOG_ERROR("Failed to create pipeline program");
+        SPDLOG_ERROR("Failed to create shader program");
         return nullptr;
     }
     return create({vertex, fragment});
 }
 
+Program::Program(const uint32_t program)
+    : program_{program} {}
+
 Program::~Program() {
     if (program_) {
+        SPDLOG_INFO("Delete shader program: {}", program_);
         glDeleteProgram(program_);
     }
 }
 
-bool Program::link(const std::vector<std::shared_ptr<Shader>> &shaders) {
-    program_ = glCreateProgram();
+bool Program::link(const std::vector<std::shared_ptr<Shader>> &shaders) const {
     // Attach shaders into program.
     for (auto &shader : shaders) {
         glAttachShader(program_, shader->get());

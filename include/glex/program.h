@@ -14,7 +14,7 @@
 ///
 /// A class that encapsulates an OpenGL shader program.
 class Program {
-    uint32_t program_{0};
+    const uint32_t program_;
 
 public:
     /// # Program::create
@@ -130,8 +130,10 @@ public:
     void set_texture(int slot, const Texture &texture) const;
 
 private:
-    Program() {}
-    bool link(const std::vector<std::shared_ptr<Shader>> &shaders);
+    explicit Program(uint32_t program);
+
+    [[nodiscard]]
+    bool link(const std::vector<std::shared_ptr<Shader>> &shaders) const;
 };
 
 

@@ -18,7 +18,7 @@ std::unique_ptr<Image> Image::load(const std::string &filepath) {
         return nullptr;
     }
     SPDLOG_INFO("Image has been loaded: \"{}\" {}x{}, {} channels", filepath, width, height, channels);
-    return std::unique_ptr<Image>{new Image{width, height, channels, image}};
+    return std::unique_ptr<Image>{new Image{width, height, channels, image, filepath}};
 }
 
 std::unique_ptr<Image> Image::create(int width, int height, int channels) {
@@ -27,7 +27,7 @@ std::unique_ptr<Image> Image::create(int width, int height, int channels) {
         SPDLOG_ERROR("Failed to allocate memory for new image");
         return nullptr;
     }
-    auto image = std::unique_ptr<Image>{new Image{width, height, channels, data}};
+    auto image = std::unique_ptr<Image>{new Image{width, height, channels, data, "CHECK_IMAGE"}};
     SPDLOG_INFO("Empty image has been created: {}x{}, {} channels", width, height, channels);
     return image;
 }
@@ -48,12 +48,14 @@ void Image::set_check_image(const int grid_x, const int grid_y) const {
 
 Image::~Image() {
     if (data_) {
+        SPDLOG_INFO("Unload image: \"{}\"", filepath_);
         stbi_image_free(data_);
     }
 }
 
-Image::Image(int width, int height, int channels, uint8_t *data)
+Image::Image(const int width, const int height, const int channels, uint8_t *data, const std::string &filepath)
     : width_{width}
     , height_{height}
     , channels_{channels}
-    , data_{data} {}
+    , data_{data}
+    , filepath_{filepath} {}

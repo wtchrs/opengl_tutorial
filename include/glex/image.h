@@ -15,6 +15,8 @@ class Image {
     const int channels_;
     uint8_t *const data_;
 
+    const std::string filepath_;
+
 public:
     /// # Image::load
     ///
@@ -79,6 +81,17 @@ public:
         return channels_;
     }
 
+    /// # Image::set_check_image
+    ///
+    /// Sets the image data to a checkerboard pattern.
+    ///
+    /// ## Parameters
+    /// - `grid_x`: The number of horizontal squares in the checkerboard.
+    /// - `grid_y`: The number of vertical squares in the checkerboard.
+    ///
+    /// ## Details
+    /// This function modifies the image data to create a checkerboard pattern with the specified number of horizontal
+    /// and vertical squares.
     void set_check_image(int grid_x, int grid_y) const;
 
 private:
@@ -91,7 +104,7 @@ private:
     /// - `height`: The height of the image.
     /// - `channels`: The number of color channels in the image.
     /// - `data`: A pointer to the raw pixel data.
-    Image(int width, int height, int channels, uint8_t *data);
+    Image(int width, int height, int channels, uint8_t *data, const std::string &filepath);
 };
 
 

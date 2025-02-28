@@ -10,7 +10,7 @@
 ///
 /// A class that encapsulates an OpenGL vertex array object.
 class VertexLayout {
-    uint32_t vertex_array_object_{0};
+    const uint32_t vertex_array_object_;
 
 public:
     /// # VertexLayout::create
@@ -65,8 +65,7 @@ public:
     void disable_attrib(int attrib_index) const;
 
 private:
-    VertexLayout() {}
-    void init();
+    explicit VertexLayout(uint32_t vertex_array_object);
 };
 
 

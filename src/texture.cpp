@@ -7,6 +7,10 @@
 std::unique_ptr<Texture> Texture::create() {
     uint32_t texture_id;
     glGenTextures(1, &texture_id);
+    if (const auto error = glGetError(); error != GL_NO_ERROR) {
+        SPDLOG_ERROR("Failed to create texture: {}", error);
+        return nullptr;
+    }
     auto texture = std::unique_ptr<Texture>{new Texture{texture_id}};
     texture->bind();
     // Set default filter and wrap.
@@ -22,6 +26,7 @@ Texture::Texture(const uint32_t texture_id)
 
 Texture::~Texture() {
     if (texture_) {
+        SPDLOG_INFO("Delete texture: {}", texture_);
         glDeleteTextures(1, &texture_);
     }
 }
