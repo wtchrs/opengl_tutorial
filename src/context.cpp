@@ -87,17 +87,10 @@ bool Context::init() {
     // GL_ELEMENT_ARRAY_BUFFER means EBO.
     index_buffer_ = Buffer::create_with_data(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, INDICES, sizeof(INDICES));
 
-    // Load and compile shaders.
-    std::shared_ptr vertex_shader = Shader::create_from_file("./shader/lighting.vs", GL_VERTEX_SHADER);
-    std::shared_ptr fragment_shader = Shader::create_from_file("./shader/lighting.fs", GL_FRAGMENT_SHADER);
-    if (!vertex_shader || !fragment_shader) {
-        SPDLOG_ERROR("Failed to initialize context");
-        return false;
-    }
-
-    // Link program.
-    program_ = Program::create({vertex_shader, fragment_shader});
-    if (!program_) {
+    // Load programs.
+    simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
+    program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
+    if (!simple_program_ || !program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -181,11 +174,11 @@ void Context::render() {
     ImGui::End();
 
     static const std::vector<glm::vec3> cube_positions = {
-        glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
-        glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
-        glm::vec3{1.3f, -2.0f, -2.5f},   glm::vec3{1.5f, 2.0f, -2.5f},  glm::vec3{1.5f, 0.2f, -1.5f},
-        glm::vec3{-1.3f, 1.0f, -1.5f},
-};
+            glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
+            glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
+            glm::vec3{1.3f, -2.0f, -2.5f},   glm::vec3{1.5f, 2.0f, -2.5f},  glm::vec3{1.5f, 0.2f, -1.5f},
+            glm::vec3{-1.3f, 1.0f, -1.5f},
+    };
 
     // Clear with color that has been defined with `glClearColor`.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -207,23 +200,21 @@ void Context::render() {
                     glm::vec4{0.0f, 0.0f, -1.0f, 0.0f};
 
     // Projection and view matrix
-    auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.01f, 30.0f);
-    auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
+    const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.01f, 30.0f);
+    const auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
 
     static constexpr auto obj_rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
 
-    program_->use();
-
     // Draw one cube for light position.
-    auto light_model = glm::translate(glm::mat4{1.0f}, light_.position) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
-    program_->set_uniform("light.position", light_.position);
-    program_->set_uniform("light.ambient", light_.diffuse);
-    program_->set_uniform("material.ambient", light_.diffuse);
-    program_->set_uniform("modelTransform", light_model);
-    program_->set_uniform("transform", projection * view * light_model);
+    const auto light_model =
+            glm::translate(glm::mat4{1.0f}, light_.position) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
+    simple_program_->use();
+    simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 0.0f});
+    simple_program_->set_uniform("transform", projection * view * light_model);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 
     // Restore light settings.
+    program_->use();
     program_->set_uniform("viewPos", camera_pos_);
     program_->set_uniform("light.position", light_.position);
     program_->set_uniform("light.ambient", light_.ambient);

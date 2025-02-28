@@ -2,11 +2,11 @@
 #define __PROGRAM_H__
 
 
-#include "common.h"
 #include <cstdint>
 #include <glm/fwd.hpp>
 #include <memory>
 #include <vector>
+#include "common.h"
 #include "glex/texture.h"
 #include "shader.h"
 
@@ -20,17 +20,28 @@ public:
     /// # Program::create
     ///
     /// Creates and links a new `Program` object from the provided shaders.
+    /// It links the given shaders into a pipeline program in the given order.
     ///
     /// ## Parameters
     /// - `shaders`: A vector of shared pointers to `Shader` objects to be linked into the program.
     ///
     /// ## Returns
     /// A `Program` object wrapped in `std::unique_ptr` if successful, or `nullptr` if linking fails.
-    ///
-    /// ## Details
-    /// This function creates and links a new `Program` object from the provided shaders.
-    /// It links the given shaders into a pipeline program in the given order.
     static std::unique_ptr<Program> create(const std::vector<std::shared_ptr<Shader>> &shaders);
+
+    /// # Program::create
+    ///
+    /// Creates and links a new `Program` object from the provided vertex and fragment shader files.
+    /// It reads the shader source code from the files, compiles them, and links them into a pipeline program.
+    ///
+    /// ## Parameters
+    /// - `vertex_shader_filename`: The filename of the vertex shader source code.
+    /// - `frag_shader_filename`: The filename of the fragment shader source code.
+    ///
+    /// ## Returns
+    /// A `Program` object wrapped in `std::unique_ptr` if successful, or `nullptr` if linking fails.
+    static std::unique_ptr<Program>
+    create(const std::string &vertex_shader_filename, const std::string &frag_shader_filename);
 
     /// # Program::~Program
     ///
@@ -79,6 +90,15 @@ public:
     /// - `name`: The name of the uniform variable in the shader.
     /// - `value`: The `glm::vec3` vector value to set the uniform to.
     void set_uniform(const std::string &name, const glm::vec3 &value) const;
+
+    /// # Program::set_uniform
+    ///
+    /// Sets a vector uniform value in the shader program.
+    ///
+    /// ## Parameters
+    /// - `name`: The name of the uniform variable in the shader.
+    /// - `value`: The `glm::vec4` vector value to set the uniform to.
+    void set_uniform(const std::string &name, const glm::vec4 &value) const;
 
     /// # Program::set_uniform
     ///

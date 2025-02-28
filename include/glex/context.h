@@ -12,8 +12,8 @@
 ///
 /// A class that manages the OpenGL context, including shaders and buffer objects.
 class Context {
-    /// The shader program used for rendering.
-    std::unique_ptr<Program> program_;
+    /// The shader programs used for rendering.
+    std::unique_ptr<Program> program_, simple_program_;
     /// VAO, Vertex Array Object
     std::unique_ptr<VertexLayout> vertex_layout_;
     /// VBO, Vertex Buffer Object

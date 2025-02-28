@@ -7,16 +7,25 @@
 #include <vector>
 #include "glex/common.h"
 
-#define CONCAT(x1, x2) x1##(x2)
-
 std::unique_ptr<Program> Program::create(const std::vector<std::shared_ptr<Shader>> &shaders) {
     auto program = std::unique_ptr<Program>{new Program{}};
     if (!program->link(shaders)) {
-        SPDLOG_ERROR("Failed to create pipeline program.");
+        SPDLOG_ERROR("Failed to create pipeline program");
         return nullptr;
     }
     SPDLOG_INFO("Pipeline program has been created: {}", program->get());
     return std::move(program);
+}
+
+std::unique_ptr<Program>
+Program::create(const std::string &vertex_shader_filename, const std::string &frag_shader_filename) {
+    std::shared_ptr vertex = Shader::create_from_file(vertex_shader_filename, GL_VERTEX_SHADER);
+    std::shared_ptr fragment = Shader::create_from_file(frag_shader_filename, GL_FRAGMENT_SHADER);
+    if (!vertex || !fragment) {
+        SPDLOG_ERROR("Failed to create pipeline program");
+        return nullptr;
+    }
+    return create({vertex, fragment});
 }
 
 Program::~Program() {
@@ -53,22 +62,27 @@ void Program::use() const {
 }
 
 void Program::set_uniform(const std::string &name, int value) const {
-    auto loc = glGetUniformLocation(program_, name.c_str());
+    const auto loc = glGetUniformLocation(program_, name.c_str());
     glUniform1i(loc, value);
 }
 
 void Program::set_uniform(const std::string &name, float value) const {
-    auto loc = glGetUniformLocation(program_, name.c_str());
+    const auto loc = glGetUniformLocation(program_, name.c_str());
     glUniform1f(loc, value);
 }
 
 void Program::set_uniform(const std::string &name, const glm::vec3 &value) const {
-    auto loc = glGetUniformLocation(program_, name.c_str());
+    const auto loc = glGetUniformLocation(program_, name.c_str());
     glUniform3fv(loc, 1, glm::value_ptr(value));
 }
 
+void Program::set_uniform(const std::string &name, const glm::vec4 &value) const {
+    const auto loc = glGetUniformLocation(program_, name.c_str());
+    glUniform4fv(loc, 1, glm::value_ptr(value));
+}
+
 void Program::set_uniform(const std::string &name, const glm::mat4 &value) const {
-    auto loc = glGetUniformLocation(program_, name.c_str());
+    const auto loc = glGetUniformLocation(program_, name.c_str());
     glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
 }
 
