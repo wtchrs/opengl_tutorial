@@ -17,7 +17,12 @@ struct Vertex {
     /// Normal vector
     glm::vec3 normal;
     /// Texture coordinate
-    glm::vec2 texCoord;
+    glm::vec2 tex_coord;
+
+    constexpr Vertex(const glm::vec3 position, const glm::vec3 normal, const glm::vec2 tex_coord)
+        : position{position}
+        , normal{normal}
+        , tex_coord{tex_coord} {}
 };
 
 /// # Mesh

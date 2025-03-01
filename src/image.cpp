@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <glm/gtc/type_ptr.hpp>
 #include <stb_image.h>
 
 std::unique_ptr<Image> Image::load(const std::string &filepath) {
@@ -42,6 +43,20 @@ void Image::set_check_image(const int grid_x, const int grid_y) const {
             if (channels_ > 3) {
                 data_[pos + 3] = 255;
             }
+        }
+    }
+}
+
+void Image::set_single_color_image(const glm::vec4 &color) const {
+    const auto clamped = glm::clamp(color * 255.0f, 0.0f, 255.0f);
+    const uint8_t rgb[] = {
+            static_cast<uint8_t>(clamped.r), static_cast<uint8_t>(clamped.g), static_cast<uint8_t>(clamped.b),
+            static_cast<uint8_t>(clamped.a)
+    };
+    for (size_t i = 0; i < height_; ++i) {
+        for (size_t j = 0; j < width_; ++j) {
+            const size_t pos = (i * width_ + j) * channels_;
+            std::copy_n(rgb, channels_, &data_[pos]);
         }
     }
 }

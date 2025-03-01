@@ -3,6 +3,7 @@
 
 
 #include <cstdint>
+#include <glm/vec4.hpp>
 #include <memory>
 #include <string>
 
@@ -28,6 +29,15 @@ public:
     [[nodiscard]]
     static std::unique_ptr<Image> load(const std::string &filepath);
 
+    /// ## Image::create
+    ///
+    /// Creates a new empty image with the specified dimensions and number of color channels.
+    ///
+    /// @param width: The width of the image.
+    /// @param height: The height of the image.
+    /// @param channels: The number of color channels in the image (default is 4).
+    ///
+    /// @returns `std::unique_ptr` to an `Image` object if successful, or `nullptr` if creation fails.
     static std::unique_ptr<Image> create(int width, int height, int channels = 4);
 
     /// ## Image::~Image
@@ -78,6 +88,16 @@ public:
     /// This function modifies the image data to create a checkerboard pattern with the specified number of horizontal
     /// and vertical squares.
     void set_check_image(int grid_x, int grid_y) const;
+
+    /// ## Image::set_single_color_image
+    ///
+    /// Sets the image data to a single color.
+    ///
+    /// @param color: The color to set the image to, represented as a `glm::vec4`.
+    ///
+    /// #### Details
+    /// This function modifies the image data to fill the entire image with the specified color.
+    void set_single_color_image(const glm::vec4 &color) const;
 
 private:
     /// ## Image::Image

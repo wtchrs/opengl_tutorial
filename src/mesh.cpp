@@ -28,7 +28,7 @@ std::unique_ptr<Mesh> Mesh::create(
     // Enable VAO attribute. (position, normal, texCoord)
     vertex_layout->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
     vertex_layout->set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
-    vertex_layout->set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, texCoord));
+    vertex_layout->set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tex_coord));
     SPDLOG_INFO("Mesh has been generated");
     return std::unique_ptr<Mesh>{new Mesh{primitive_type, std::move(vertex_layout), vertex_buffer, index_buffer}};
 }

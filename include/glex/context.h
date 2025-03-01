@@ -4,6 +4,7 @@
 
 #include <memory>
 #include "glex/mesh.h"
+#include "glex/model.h"
 #include "glex/program.h"
 #include "glex/texture.h"
 
@@ -32,8 +33,8 @@ class Context {
     std::unique_ptr<Program> program_, simple_program_;
     /// The mesh object used for rendering vertices.
     std::unique_ptr<Mesh> cube_mesh_;
-    /// Texture
-    std::unique_ptr<Texture> texture1_, texture2_;
+    /// The model object loaded from 'obj' file.
+    std::unique_ptr<Model> model_;
 
     ///@{
     /// Default parameters
@@ -67,6 +68,7 @@ class Context {
     float aspect_ratio_{static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT)};
 
     glm::vec4 clear_color_{0.1f, 0.2f, 0.3f, 0.0f};
+    float scale_{0.2};
 
     bool animation_{true};
 

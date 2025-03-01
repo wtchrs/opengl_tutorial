@@ -6,11 +6,12 @@
     {
       "name": "imgui",
       "features": [
-        "opengl3-binding",
-        "glfw-binding"
+        "glfw-binding",
+        "opengl3-binding"
       ]
     },
     "spdlog",
-    "stb"
+    "stb",
+    "assimp"
   ]
 }

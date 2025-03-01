@@ -10,11 +10,12 @@ set(CMAKE_CXX_EXTENTION OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # vcpkg packages
-find_package(spdlog CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 
 set(WINDOW_NAME "OpenGL Example")
@@ -29,6 +30,7 @@ file(GLOB_RECURSE SOURCES
     src/context.cpp
     src/image.cpp
     src/mesh.cpp
+    src/model.cpp
     src/program.cpp
     src/shader.cpp
     src/texture.cpp
@@ -40,11 +42,12 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_include_directories(${PROJECT_NAME} PRIVATE ${Stb_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    spdlog::spdlog
+    assimp::assimp
     glfw
     glad::glad
     glm::glm
     imgui::imgui
+    spdlog::spdlog
 )
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     WINDOW_NAME="${WINDOW_NAME}"

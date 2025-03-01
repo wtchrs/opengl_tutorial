@@ -25,6 +25,12 @@ std::unique_ptr<Context> Context::create() {
 bool Context::init() {
     // Create cube mesh.
     cube_mesh_ = Mesh::create_cube();
+    // Load model.
+    model_ = Model::load("./model/backpack/backpack.obj");
+    if (!model_) {
+        SPDLOG_ERROR("Failed to initialize context");
+        return false;
+    }
 
     // Load programs.
     simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
@@ -38,22 +44,31 @@ bool Context::init() {
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
     // Load an image for texture
+    /*
     const auto diffuse_map_image = Image::load("./image/container2.png");
     const auto specular_map_image = Image::load("./image/container2_specular.png");
     if (!diffuse_map_image || !specular_map_image) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
+    */
+
+    const auto single_color_image = Image::create(512, 512);
+    if (!single_color_image) {
+        SPDLOG_ERROR("Failed to initialize context");
+        return false;
+    }
+    single_color_image->set_single_color_image({1.0f, 1.0f, 1.0f, 1.0f});
 
     program_->use();
 
-    // Generate material textures such as the diffuse map and the specular map.
+    // Generate material textures such as the diffuse map and the specular map with single-colored textures.
     material_.diffuse = Texture::create();
-    material_.diffuse->set_texture_image(0, *diffuse_map_image);
+    material_.diffuse->set_texture_image(0, *single_color_image);
     material_.specular = Texture::create();
-    material_.specular->set_texture_image(0, *specular_map_image);
+    material_.specular->set_texture_image(0, *single_color_image);
 
-    // Bind textures to texture slots.
+    // Bind material textures to texture slots.
     program_->set_texture(0, *material_.diffuse);
     program_->set_uniform("material.diffuse", 0);
     program_->set_texture(1, *material_.specular);
@@ -81,6 +96,7 @@ void Context::render() {
         if (ImGui::ColorEdit4("Clear color", glm::value_ptr(clear_color_))) {
             glClearColor(clear_color_.x, clear_color_.y, clear_color_.z, clear_color_.w);
         }
+        ImGui::DragFloat("Scale", &scale_, 0.1f, 0.0f, 1.0f);
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::DragFloat3("Position", glm::value_ptr(camera_pos_), 0.1f);
@@ -169,12 +185,13 @@ void Context::render() {
         model = glm::rotate(
                 model, glm::radians(current_time * 120.0f + 20.0f * static_cast<float>(i)), obj_rotate_direction
         );
+        model = glm::scale(model, glm::vec3{scale_});
 
         auto transform = projection * view * model; // MVP matrix
         program_->set_uniform("modelTransform", model);
         program_->set_uniform("transform", transform);
 
-        cube_mesh_->draw();
+        model_->draw();
     }
 }
 
