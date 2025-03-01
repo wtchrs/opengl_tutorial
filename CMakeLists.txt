@@ -28,6 +28,7 @@ file(GLOB_RECURSE SOURCES
     src/common.cpp
     src/context.cpp
     src/image.cpp
+    src/mesh.cpp
     src/program.cpp
     src/shader.cpp
     src/texture.cpp
@@ -50,4 +51,3 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
     WINDOW_WIDTH=${WINDOW_WIDTH}
     WINDOW_HEIGHT=${WINDOW_HEIGHT}
 )
-

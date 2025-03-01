@@ -3,10 +3,9 @@
 
 
 #include <memory>
-#include "glex/buffer.h"
+#include "glex/mesh.h"
 #include "glex/program.h"
 #include "glex/texture.h"
-#include "glex/vertex_layout.h"
 
 /// # Context
 ///
@@ -31,12 +30,8 @@ class Context {
 
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_;
-    /// VAO, Vertex Array Object
-    std::unique_ptr<VertexLayout> vertex_layout_;
-    /// VBO, Vertex Buffer Object
-    std::unique_ptr<Buffer> vertex_buffer_;
-    /// EBO, Element Buffer Object
-    std::unique_ptr<Buffer> index_buffer_;
+    /// The mesh object used for rendering vertices.
+    std::unique_ptr<Mesh> cube_mesh_;
     /// Texture
     std::unique_ptr<Texture> texture1_, texture2_;
 

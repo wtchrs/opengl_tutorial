@@ -1,7 +1,6 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
 #include <cstddef>
-#include <cstdint>
 #include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
@@ -12,7 +11,6 @@
 #include "glex/common.h"
 #include "glex/image.h"
 #include "glex/texture.h"
-#include "glex/vertex_layout.h"
 
 std::unique_ptr<Context> Context::create() {
     auto context = std::unique_ptr<Context>{new Context{}};
@@ -25,71 +23,8 @@ std::unique_ptr<Context> Context::create() {
 }
 
 bool Context::init() {
-    // Declare vertices and indices for drawing a cube.
-    constexpr float VERTICES[] = {
-            // position.xyz, normal.xyz, texCoord.uv
-            -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f, 1.0f, // bottom
-            -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  0.0f, 0.0f, //
-            0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  1.0f, 0.0f, //
-            0.5f,  -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  1.0f, 1.0f, //
-
-            -0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 1.0f, // back
-            -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 0.0f, //
-            0.5f,  -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 0.0f, //
-            0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 1.0f, //
-
-            0.5f,  0.5f,  -0.5f, 1.0f,  0.0f,  0.0f,  0.0f, 1.0f, // right
-            0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.0f, 0.0f, //
-            0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, //
-            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, //
-
-            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f, // front
-            0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f, //
-            -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f, //
-            -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f, //
-
-            -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  0.0f, 1.0f, // left
-            -0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f,  0.0f, 0.0f, //
-            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  1.0f, 0.0f, //
-            -0.5f, 0.5f,  -0.5f, -1.0f, 0.0f,  0.0f,  1.0f, 1.0f, //
-
-            0.5f,  0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f, 1.0f, // top
-            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f, //
-            -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f, //
-            -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  1.0f, 1.0f, //
-    };
-    constexpr uint32_t INDICES[] = {
-            0,  1,  2,  0,  2,  3, //
-            4,  5,  6,  4,  6,  7, //
-            8,  9,  10, 8,  10, 11, //
-            12, 13, 14, 12, 14, 15, //
-            16, 17, 18, 16, 18, 19, //
-            20, 21, 22, 20, 22, 23, //
-    };
-    constexpr size_t STRIDE = 8; // number of floats in one vertex
-
-    // Generate VAO, Vertex Array Object.
-    // VAO must be generated before VBO generated.
-    vertex_layout_ = VertexLayout::create();
-
-    // Generate VBO, Vertex Buffer Object.
-    // GL_ARRAY_BUFFER means VBO.
-    // usage in `glBufferData` can be "GL_(STATIC|DYNAMIC|STREAM)_(DRAW|COPY|READ)"
-    // GL_STATIC_DRAW means that this vertices will not be changed.
-    vertex_buffer_ = Buffer::create_with_data(
-            GL_ARRAY_BUFFER, GL_STATIC_DRAW, VERTICES, sizeof(float), sizeof(VERTICES) / sizeof(float)
-    );
-
-    // Set and enable VAO attribute.
-    vertex_layout_->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * STRIDE, 0);
-    vertex_layout_->set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * STRIDE, sizeof(float) * 3);
-    vertex_layout_->set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * STRIDE, sizeof(float) * 6);
-
-    // Generate EBO, Element Buffer Object.
-    // GL_ELEMENT_ARRAY_BUFFER means EBO.
-    index_buffer_ = Buffer::create_with_data(
-            GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, INDICES, sizeof(uint32_t), sizeof(INDICES) / sizeof(uint32_t)
-    );
+    // Create cube mesh.
+    cube_mesh_ = Mesh::create_cube();
 
     // Load programs.
     simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
@@ -211,7 +146,7 @@ void Context::render() {
     simple_program_->use();
     simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 0.0f});
     simple_program_->set_uniform("transform", projection * view * light_model);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+    cube_mesh_->draw();
 
     // Set lighting.
     program_->use();
@@ -239,7 +174,7 @@ void Context::render() {
         program_->set_uniform("modelTransform", model);
         program_->set_uniform("transform", transform);
 
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+        cube_mesh_->draw();
     }
 }
 
