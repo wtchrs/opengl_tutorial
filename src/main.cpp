@@ -7,12 +7,12 @@
 #include <imgui_impl_opengl3.h>
 #include "glex/context.h"
 
-void onFrameBufferSizeChanged(GLFWwindow *window, int width, int height);
-void onKeyEvent(GLFWwindow *window, int key, int scancode, int action, int mods);
-void onCursorPos(GLFWwindow *window, double x, double y);
-void onMouseButton(GLFWwindow *window, int button, int action, int mods);
-void onCharEvent(GLFWwindow *window, unsigned int ch);
-void onScroll(GLFWwindow *window, double xoffset, double yoffset);
+void on_frame_buffer_size_changed(GLFWwindow *window, int width, int height);
+void on_key_event(GLFWwindow *window, int key, int scancode, int action, int mods);
+void on_cursor_pos(GLFWwindow *window, double x, double y);
+void on_mouse_button(GLFWwindow *window, int button, int action, int mods);
+void on_char_event(GLFWwindow *window, unsigned int ch);
+void on_scroll(GLFWwindow *window, double xoffset, double yoffset);
 
 int main() {
     SPDLOG_INFO("Start main");
@@ -31,7 +31,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     SPDLOG_INFO("Create glfw window");
-    auto window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
+    const auto window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
     if (!window) {
         SPDLOG_ERROR("Failed to create glfw window");
         glfwTerminate();
@@ -48,11 +48,11 @@ int main() {
 
     // OpenGL functions can be called above here.
 
-    auto glVersion = glGetString(GL_VERSION);
+    const auto glVersion = glGetString(GL_VERSION);
     SPDLOG_INFO("OpenGL context version: {}", reinterpret_cast<const char *>(glVersion));
 
     // Initialize ImGui.
-    auto imgui_context = ImGui::CreateContext();
+    const auto imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
     ImGui_ImplGlfw_InitForOpenGL(window, false);
     ImGui_ImplOpenGL3_Init();
@@ -72,13 +72,13 @@ int main() {
     glfwSetWindowUserPointer(window, context.get());
 
     // Register event handlers.
-    onFrameBufferSizeChanged(window, WINDOW_WIDTH, WINDOW_HEIGHT);
-    glfwSetFramebufferSizeCallback(window, onFrameBufferSizeChanged);
-    glfwSetKeyCallback(window, onKeyEvent);
-    glfwSetCursorPosCallback(window, onCursorPos);
-    glfwSetMouseButtonCallback(window, onMouseButton);
-    glfwSetCharCallback(window, onCharEvent);
-    glfwSetScrollCallback(window, onScroll);
+    on_frame_buffer_size_changed(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glfwSetFramebufferSizeCallback(window, on_frame_buffer_size_changed);
+    glfwSetKeyCallback(window, on_key_event);
+    glfwSetCursorPosCallback(window, on_cursor_pos);
+    glfwSetMouseButtonCallback(window, on_mouse_button);
+    glfwSetCharCallback(window, on_char_event);
+    glfwSetScrollCallback(window, on_scroll);
 
     // Enable vsync
     glfwSwapInterval(1);
@@ -113,7 +113,7 @@ int main() {
     return 0;
 }
 
-void onFrameBufferSizeChanged(GLFWwindow *window, int width, int height) {
+void on_frame_buffer_size_changed(GLFWwindow *window, const int width, const int height) {
     SPDLOG_INFO("Frame buffer size changed: ({}x{})", width, height);
     // Call Context::reshape
     const auto context = static_cast<Context *>(glfwGetWindowUserPointer(window));
@@ -122,7 +122,7 @@ void onFrameBufferSizeChanged(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-void onKeyEvent(GLFWwindow *window, int key, int scancode, int action, int mods) {
+void on_key_event(GLFWwindow *window, const int key, const int scancode, const int action, const int mods) {
     ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
     auto actionStr = action == GLFW_PRESS     ? "Pressed"
                      : action == GLFW_RELEASE ? "Released"
@@ -139,13 +139,13 @@ void onKeyEvent(GLFWwindow *window, int key, int scancode, int action, int mods)
     }
 }
 
-void onCursorPos(GLFWwindow *window, const double x, const double y) {
+void on_cursor_pos(GLFWwindow *window, const double x, const double y) {
     SPDLOG_TRACE("Mouse cursor moved: ({}, {})", x, y);
     const auto context = static_cast<Context *>(glfwGetWindowUserPointer(window));
     context->mouse_move(x, y);
 }
 
-void onMouseButton(GLFWwindow *window, const int button, const int action, int mods) {
+void on_mouse_button(GLFWwindow *window, const int button, const int action, const int mods) {
     ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods); // ImGui mouse handler
     double x, y;
     const auto context = static_cast<Context *>(glfwGetWindowUserPointer(window));
@@ -154,10 +154,10 @@ void onMouseButton(GLFWwindow *window, const int button, const int action, int m
     context->mouse_button(button, action, x, y);
 }
 
-void onCharEvent(GLFWwindow *window, unsigned int ch) {
+void on_char_event(GLFWwindow *window, const unsigned int ch) {
     ImGui_ImplGlfw_CharCallback(window, ch);
 }
 
-void onScroll(GLFWwindow *window, double xoffset, double yoffset) {
+void on_scroll(GLFWwindow *window, const double xoffset, const double yoffset) {
     ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
 }
