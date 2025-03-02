@@ -79,8 +79,11 @@ std::unique_ptr<Mesh> Mesh::create_cube() {
     );
 }
 
-void Mesh::draw() const {
+void Mesh::draw(const Program *program) const {
     vertex_layout_->bind();
+    if (material_) {
+        material_->set_to_program(program);
+    }
     glDrawElements(primitive_type_, index_buffer_->get_count(), GL_UNSIGNED_INT, nullptr);
 }
 
@@ -92,3 +95,17 @@ Mesh::Mesh(
     , vertex_layout_{std::move(vertex_layout)}
     , vertex_buffer_{vertex_buffer}
     , index_buffer_{index_buffer} {}
+
+void Material::set_to_program(const Program *program) const {
+    int texture_count = 0;
+    if (diffuse_) {
+        program->set_texture(texture_count, *diffuse_);
+        program->set_uniform("material.diffuse", texture_count);
+        texture_count++;
+    }
+    if (specular_) {
+        program->set_texture(texture_count, *specular_);
+        program->set_uniform("material.specular", texture_count);
+    }
+    program->set_uniform("material.shininess", shininess_);
+}

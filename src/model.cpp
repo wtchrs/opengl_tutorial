@@ -3,6 +3,9 @@
 #include <assimp/postprocess.h>
 #include <spdlog/spdlog.h>
 
+static std::shared_ptr<Texture>
+load_texture(const std::string &dirname, const aiMaterial *material, aiTextureType type);
+
 std::unique_ptr<Model> Model::load(const std::string &filepath) {
     auto model = std::unique_ptr<Model>{new Model{}};
     if (!model->load_by_assimp(filepath)) {
@@ -13,11 +16,12 @@ std::unique_ptr<Model> Model::load(const std::string &filepath) {
     return std::move(model);
 }
 
-void Model::draw() const {
+void Model::draw(const Program *program) const {
     for (const auto &mesh : meshes_) {
-        mesh->draw();
+        mesh->draw(program);
     }
 }
+
 
 bool Model::load_by_assimp(const std::string &filepath) {
     Assimp::Importer importer;
@@ -25,6 +29,13 @@ bool Model::load_by_assimp(const std::string &filepath) {
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         SPDLOG_ERROR("Failed to load model from file: \"{}\"", filepath);
         return false;
+    }
+    const auto dirname = filepath.substr(0, filepath.find_last_of('/'));
+    for (size_t i = 0; i < scene->mNumMaterials; ++i) {
+        const auto material = scene->mMaterials[i];
+        auto diffuse = load_texture(dirname, material, aiTextureType_DIFFUSE);
+        auto specular = load_texture(dirname, material, aiTextureType_SPECULAR);
+        materials_.push_back(std::make_shared<Material>(diffuse, specular));
     }
     process_node(scene->mRootNode, scene);
     return true;
@@ -59,5 +70,24 @@ void Model::process_mesh(const aiMesh *mesh) {
         indices.push_back(mesh->mFaces[i].mIndices[2]);
     }
     auto gl_mesh = Mesh::create(vertices, indices, GL_TRIANGLES);
+    if (mesh->mMaterialIndex >= 0) {
+        gl_mesh->set_material(materials_[mesh->mMaterialIndex]);
+    }
     meshes_.push_back(std::move(gl_mesh));
+}
+
+static std::shared_ptr<Texture>
+load_texture(const std::string &dirname, const aiMaterial *material, const aiTextureType type) {
+    if (material->GetTextureCount(type) <= 0) {
+        return nullptr;
+    }
+    aiString filepath;
+    material->GetTexture(type, 0, &filepath);
+    const auto image = Image::load(std::format("{}/{}", dirname, filepath.C_Str()));
+    if (!image) {
+        return nullptr;
+    }
+    const std::shared_ptr texture = Texture::create();
+    texture->set_texture_image(0, *image);
+    return texture;
 }

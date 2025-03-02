@@ -162,7 +162,7 @@ void Context::render() {
     simple_program_->use();
     simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 0.0f});
     simple_program_->set_uniform("transform", projection * view * light_model);
-    cube_mesh_->draw();
+    cube_mesh_->draw(simple_program_.get());
 
     // Set lighting.
     program_->use();
@@ -191,7 +191,7 @@ void Context::render() {
         program_->set_uniform("modelTransform", model);
         program_->set_uniform("transform", transform);
 
-        model_->draw();
+        model_->draw(program_.get());
     }
 }
 

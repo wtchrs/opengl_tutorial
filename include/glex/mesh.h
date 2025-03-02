@@ -6,6 +6,8 @@
 #include <vector>
 #include "glex/buffer.h"
 #include "glex/common.h"
+#include "glex/program.h"
+#include "glex/texture.h"
 #include "glex/vertex_layout.h"
 
 /// # Vertex
@@ -19,10 +21,51 @@ struct Vertex {
     /// Texture coordinate
     glm::vec2 tex_coord;
 
+    /// ## Vertex::Vertex
+    ///
+    /// Constructor to initialize a `Vertex` object.
+    ///
+    /// @param position: The position of the vertex.
+    /// @param normal: The normal vector of the vertex.
+    /// @param tex_coord: The texture coordinate of the vertex.
     constexpr Vertex(const glm::vec3 position, const glm::vec3 normal, const glm::vec2 tex_coord)
         : position{position}
         , normal{normal}
         , tex_coord{tex_coord} {}
+};
+
+/// # Material
+///
+/// A class that represents the material properties of a mesh.
+struct Material {
+    /// Diffuse map texture
+    const std::shared_ptr<Texture> diffuse_;
+    /// Specular map texture
+    const std::shared_ptr<Texture> specular_;
+    /// Shininess factor
+    const float shininess_;
+
+    /// ## Material::Material
+    ///
+    /// Constructor to initialize a `Material` object.
+    ///
+    /// @param diffuse: Shared pointer to the diffuse texture.
+    /// @param specular: Shared pointer to the specular texture.
+    /// @param shininess: The shininess factor of the material (default is 32.0f).
+    Material(
+            const std::shared_ptr<Texture> &diffuse, const std::shared_ptr<Texture> &specular,
+            const float shininess = 32.0f
+    )
+        : diffuse_{diffuse}
+        , specular_{specular}
+        , shininess_{shininess} {}
+
+    /// ## Material::set_to_program
+    ///
+    /// Sets the material properties to the specified shader program.
+    ///
+    /// @param program: Pointer to the `Program` object.
+    void set_to_program(const Program *program) const;
 };
 
 /// # Mesh
@@ -37,6 +80,8 @@ class Mesh {
     const std::shared_ptr<Buffer> vertex_buffer_;
     /// EBO, Element Buffer Object
     const std::shared_ptr<Buffer> index_buffer_;
+    /// Material
+    std::shared_ptr<Material> material_;
 
 public:
     /// ## Mesh::create
@@ -97,10 +142,29 @@ public:
         return index_buffer_;
     }
 
+    /// ## Mesh::set_material
+    ///
+    /// Sets the material for the mesh.
+    ///
+    /// @param material: Shared pointer to the `Material` object.
+    void set_material(const std::shared_ptr<Material> &material) {
+        material_ = material;
+    }
+
+    /// ## Mesh::get_material
+    ///
+    /// @returns Shared pointer to the `Material` object.
+    [[nodiscard]]
+    std::shared_ptr<Material> get_material() const {
+        return material_;
+    }
+
     /// ## Mesh::draw
     ///
+    /// @param program Pointer to the `Program` object.
+    ///
     /// Draws the mesh using the current OpenGL context.
-    void draw() const;
+    void draw(const Program *program) const;
 
 private:
     Mesh(uint32_t primitive_type, std::unique_ptr<VertexLayout> &&vertex_layout,

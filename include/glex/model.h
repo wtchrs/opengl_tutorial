@@ -7,12 +7,14 @@
 #include <vector>
 #include "glex/common.h"
 #include "glex/mesh.h"
+#include "glex/program.h"
 
 /// # Model
 ///
 /// A class that represents a 3D model loaded from a file.
 class Model {
     std::vector<std::shared_ptr<Mesh>> meshes_;
+    std::vector<std::shared_ptr<Material>> materials_;
 
 public:
     /// ## Model::load
@@ -44,8 +46,10 @@ public:
 
     /// ## Model::draw
     ///
+    /// @param program Pointer to the `Program` object.
+    ///
     /// Draws the model by rendering all its meshes.
-    void draw() const;
+    void draw(const Program *program) const;
 
 private:
     /// ## Model::load_by_assimp

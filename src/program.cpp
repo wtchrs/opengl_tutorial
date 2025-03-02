@@ -105,8 +105,6 @@ void Program::set_texture(int slot, const Texture &texture) const {
     }
     glActiveTexture(GL_TEXTURE0 + slot);
     texture.bind();
-    // Provide texture slot numbers to uniform locations.
-    // set_uniform(name, slot);
-    SPDLOG_INFO("Texture has been set to slot GL_TEXTURE{}:", slot);
-    SPDLOG_INFO(" Use this texture by calling `set_uniform(\"uniformName\", {})`", slot);
+    SPDLOG_DEBUG("Texture has been set to slot GL_TEXTURE{}:", slot);
+    SPDLOG_DEBUG("  Use this texture by calling `set_uniform(\"uniformName\", {})`", slot);
 }
