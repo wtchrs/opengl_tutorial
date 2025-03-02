@@ -106,9 +106,12 @@ void Context::render() {
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Light");
-            ImGui::DragFloat3("l.position", glm::value_ptr(light_.position), 0.01f);
-            ImGui::DragFloat("l.distance(max distance)", &light_.distance, 0.5f, 0.0f, 3000.0f);
-            ImGui::DragFloat3("l.direction", glm::value_ptr(light_.direction), 0.01f);
+            ImGui::Checkbox("Flash light mode", &flash_light_mode_);
+            if (!flash_light_mode_) {
+                ImGui::DragFloat3("l.position", glm::value_ptr(light_.position), 0.01f);
+                ImGui::DragFloat3("l.direction", glm::value_ptr(light_.direction), 0.01f);
+            }
+            ImGui::DragFloat("l.distance(attenuation)", &light_.distance, 0.5f, 0.0f, 3000.0f);
             ImGui::DragFloat2("l.cutoff(degree)", glm::value_ptr(light_.cutoff), 0.5f, 0.0f, 180.0f);
             ImGui::ColorEdit3("l.ambient", glm::value_ptr(light_.ambient));
             ImGui::ColorEdit3("l.diffuse", glm::value_ptr(light_.diffuse));
@@ -156,20 +159,27 @@ void Context::render() {
 
     static constexpr auto obj_rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
 
-    // Draw one cube with simple_program_ for indicating the light position.
-    const auto light_model =
-            glm::translate(glm::mat4{1.0f}, light_.position) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
-    simple_program_->use();
-    simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 0.0f});
-    simple_program_->set_uniform("transform", projection * view * light_model);
-    cube_mesh_->draw(simple_program_.get());
+    auto light_pos = light_.position;
+    auto light_dir = light_.direction;
+    if (flash_light_mode_) {
+        light_pos = camera_pos_;
+        light_dir = camera_front_;
+    } else {
+        // Draw one cube with simple_program_ for indicating the light position.
+        const auto light_model =
+                glm::translate(glm::mat4{1.0f}, light_pos) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
+        simple_program_->use();
+        simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 0.0f});
+        simple_program_->set_uniform("transform", projection * view * light_model);
+        cube_mesh_->draw(simple_program_.get());
+    }
 
     // Set lighting.
     program_->use();
     program_->set_uniform("viewPos", camera_pos_);
-    program_->set_uniform("light.position", light_.position);
+    program_->set_uniform("light.position", light_pos);
+    program_->set_uniform("light.direction", light_dir);
     program_->set_uniform("light.attenuation", get_attenuation_coefficient(light_.distance));
-    program_->set_uniform("light.direction", light_.direction);
     program_->set_uniform(
             "light.cutoff", glm::cos(glm::radians(glm::vec2{light_.cutoff.x, light_.cutoff.x + light_.cutoff.y}))
     );

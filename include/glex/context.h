@@ -71,6 +71,7 @@ class Context {
     float scale_{0.2};
 
     bool animation_{true};
+    bool flash_light_mode_{false};
 
     ///@{
     /// Lighting parameters
