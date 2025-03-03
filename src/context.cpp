@@ -120,7 +120,7 @@ void Context::render() {
     ImGui::End();
 
     // Clear color buffer with `glClearColor` and depth buffer with 1.0.
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // Calculate camera front direction.
     camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
@@ -172,15 +172,25 @@ void Context::render() {
         glm::vec3 rotDir;
         float rotAngle;
         std::shared_ptr<Material> material;
+        bool outline;
     };
 
     CubeObject cubes[] = {
-            {{0.0f, -0.5f, 0.0f}, {10.0f, 1.0f, 10.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_material_},
-            {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_material1_},
-            {{0.0f, -0.749f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_material2_},
+            {{0.0f, -0.5f, 0.0f}, {10.0f, 1.0f, 10.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_material_, false},
+            {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_material1_, false},
+            {{0.0f, 0.75f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_material2_, true},
     };
 
-    for (const auto &[pos, scale, rotDir, rotAngle, material] : cubes) {
+    for (const auto &[pos, scale, rotDir, rotAngle, material, outline] : cubes) {
+        if (outline) {
+            // Set to mark stencil buffer that object is drawn.
+            glEnable(GL_STENCIL_TEST);
+            glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
+            glStencilFunc(GL_ALWAYS, 1, 0xff);
+            glStencilMask(0xff);
+        }
+
+        // Draw object.
         auto model_transform = glm::translate(glm::mat4{1.0f}, pos) * glm::rotate(glm::mat4{1.0f}, rotAngle, rotDir) *
                                glm::scale(glm::mat4{1.0f}, scale);
         auto transform = projection * view * model_transform;
@@ -188,6 +198,26 @@ void Context::render() {
         program_->set_uniform("modelTransform", model_transform);
         material->set_to_program(*program_);
         cube_mesh_->draw(*program_);
+
+        if (outline) {
+            // Set to allow to draw only the position that are not marked in stencil buffer.
+            glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+            glStencilMask(0x00);
+            glDisable(GL_DEPTH_TEST);
+
+            // Draw outline using stencil buffer.
+            simple_program_->use();
+            simple_program_->set_uniform("color", glm::vec4{1.0f, 1.0f, 0.5f, 1.0f});
+            auto outline_transform = transform * glm::scale(glm::mat4{1.0f}, glm::vec3{1.05f, 1.05f, 1.05f});
+            simple_program_->set_uniform("transform", outline_transform);
+            cube_mesh_->draw(*simple_program_);
+
+            // Restore settings.
+            glEnable(GL_DEPTH_TEST);
+            glDisable(GL_STENCIL_TEST);
+            glStencilFunc(GL_ALWAYS, 1, 0xff);
+            glStencilMask(0xff);
+        }
     }
 }
 
