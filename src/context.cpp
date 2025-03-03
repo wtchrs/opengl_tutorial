@@ -1,6 +1,5 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
-#include <cstddef>
 #include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
@@ -10,6 +9,7 @@
 #include <vector>
 #include "glex/common.h"
 #include "glex/image.h"
+#include "glex/mesh.h"
 #include "glex/texture.h"
 
 std::unique_ptr<Context> Context::create() {
@@ -25,57 +25,45 @@ std::unique_ptr<Context> Context::create() {
 bool Context::init() {
     // Create cube mesh.
     cube_mesh_ = Mesh::create_cube();
-    // Load model.
-    model_ = Model::load("./model/backpack/backpack.obj");
-    if (!model_) {
-        SPDLOG_ERROR("Failed to initialize context");
-        return false;
-    }
 
     // Load programs.
     simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
     program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
+
     if (!simple_program_ || !program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
 
-    // Set clear color.
-    glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
-
-    // Load an image for texture
-    /*
-    const auto diffuse_map_image = Image::load("./image/container2.png");
-    const auto specular_map_image = Image::load("./image/container2_specular.png");
-    if (!diffuse_map_image || !specular_map_image) {
-        SPDLOG_ERROR("Failed to initialize context");
-        return false;
-    }
-    */
-
-    const auto single_color_image = Image::create(512, 512);
-    if (!single_color_image) {
-        SPDLOG_ERROR("Failed to initialize context");
-        return false;
-    }
-    single_color_image->set_single_color_image({1.0f, 1.0f, 1.0f, 1.0f});
-
     program_->use();
 
-    // Generate material textures such as the diffuse map and the specular map with single-colored textures.
-    material_.diffuse = Texture::create();
-    material_.diffuse->set_texture_image(0, *single_color_image);
-    material_.specular = Texture::create();
-    material_.specular->set_texture_image(0, *single_color_image);
+    // Create dark gray single color texture.
+    auto dark_gray_image = Image::create(512, 512);
+    dark_gray_image->set_single_color_image({0.2f, 0.2f, 0.2f, 1.0f});
+    std::shared_ptr dark_gray_texture = Texture::create(*dark_gray_image);
+    // Create gray single color texture.
+    auto gray_image = Image::create(512, 512);
+    gray_image->set_single_color_image({0.5f, 0.5f, 0.5f, 1.0f});
+    std::shared_ptr gray_texture = Texture::create(*gray_image);
 
-    // Bind material textures to texture slots.
-    program_->set_texture(0, *material_.diffuse);
-    program_->set_uniform("material.diffuse", 0);
-    program_->set_texture(1, *material_.specular);
-    program_->set_uniform("material.specular", 1);
+    // Create plain material.
+    std::shared_ptr plain_diffuse = Texture::create(*Image::load("./image/marble.jpg"));
+    plain_material_ = std::make_shared<Material>(plain_diffuse, gray_texture, 128.0f);
+
+    // Create cube1 material.
+    std::shared_ptr cube_diffuse1 = Texture::create(*Image::load("./image/container.jpg"));
+    cube_material1_ = std::make_shared<Material>(cube_diffuse1, dark_gray_texture, 16.0f);
+
+    // Create cube2 material.
+    std::shared_ptr cube_diffuse2 = Texture::create(*Image::load("./image/container2.png"));
+    std::shared_ptr cube_specular2 = Texture::create(*Image::load("./image/container2_specular.png"));
+    cube_material2_ = std::make_shared<Material>(cube_diffuse2, cube_specular2, 64.0f);
 
     // Enable depth test.
     glEnable(GL_DEPTH_TEST);
+
+    // Set clear color.
+    glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
     return true;
 }
@@ -118,7 +106,6 @@ void Context::render() {
             ImGui::ColorEdit3("l.specular", glm::value_ptr(light_.specular));
             ImGui::Separator();
             ImGui::Text("Material");
-            ImGui::DragFloat("m.shininess", &material_.shininess, 1.0f, 1.0f, 256.0f);
         }
         ImGui::Separator();
         ImGui::Checkbox("Animation", &animation_);
@@ -128,25 +115,12 @@ void Context::render() {
             camera_yaw_ = CAMERA_YAW;
             camera_pitch_ = CAMERA_PITCH;
             light_ = LIGHT;
-            material_.shininess = 32.0f;
         }
     }
     ImGui::End();
 
-    static const std::vector<glm::vec3> cube_positions = {
-            glm::vec3{0.0f, 0.0f, 0.0f},     glm::vec3{2.0f, 5.0f, -15.0f}, glm::vec3{-1.5f, -2.2f, -2.5f},
-            glm::vec3{-3.8f, -2.0f, -12.3f}, glm::vec3{2.4f, -0.4f, -3.5f}, glm::vec3{-1.7f, 3.0f, -7.5f},
-            glm::vec3{1.3f, -2.0f, -2.5f},   glm::vec3{1.5f, 2.0f, -2.5f},  glm::vec3{1.5f, 0.2f, -1.5f},
-            glm::vec3{-1.3f, 1.0f, -1.5f},
-    };
-
-    // Clear with color that has been defined with `glClearColor`.
+    // Clear color buffer with `glClearColor` and depth buffer with 1.0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    static auto current_time = static_cast<float>(glfwGetTime());
-    if (animation_) {
-        current_time = static_cast<float>(glfwGetTime());
-    }
 
     // Calculate camera front direction.
     camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
@@ -154,7 +128,12 @@ void Context::render() {
                     glm::vec4{0.0f, 0.0f, -1.0f, 0.0f};
 
     // Projection and view matrix
-    const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.01f, 30.0f);
+
+    // When the `Near` value is too small, inaccurate depth test, known as "z-fighting", arise on far objects,
+    // due to the z-value distortion introduced by the projection transform.
+    /* const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.01f, 30.0f); */
+    const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.1f, 100.0f);
+
     const auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
 
     static constexpr auto obj_rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
@@ -171,7 +150,7 @@ void Context::render() {
         simple_program_->use();
         simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 0.0f});
         simple_program_->set_uniform("transform", projection * view * light_model);
-        cube_mesh_->draw(simple_program_.get());
+        cube_mesh_->draw(*simple_program_);
     }
 
     // Set lighting.
@@ -186,22 +165,29 @@ void Context::render() {
     program_->set_uniform("light.ambient", light_.ambient);
     program_->set_uniform("light.diffuse", light_.diffuse);
     program_->set_uniform("light.specular", light_.specular);
-    program_->set_uniform("material.shininess", material_.shininess);
 
-    // Draw each cubes.
-    for (size_t i = 0; i < cube_positions.size(); ++i) {
-        const glm::vec3 &pos = cube_positions[i];
-        auto model = glm::translate(glm::mat4{1.0f}, pos);
-        model = glm::rotate(
-                model, glm::radians(current_time * 120.0f + 20.0f * static_cast<float>(i)), obj_rotate_direction
-        );
-        model = glm::scale(model, glm::vec3{scale_});
+    struct CubeObject {
+        glm::vec3 pos;
+        glm::vec3 scale;
+        glm::vec3 rotDir;
+        float rotAngle;
+        std::shared_ptr<Material> material;
+    };
 
-        auto transform = projection * view * model; // MVP matrix
-        program_->set_uniform("modelTransform", model);
+    CubeObject cubes[] = {
+            {{0.0f, -0.5f, 0.0f}, {10.0f, 1.0f, 10.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_material_},
+            {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_material1_},
+            {{0.0f, -0.749f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_material2_},
+    };
+
+    for (const auto &[pos, scale, rotDir, rotAngle, material] : cubes) {
+        auto model_transform = glm::translate(glm::mat4{1.0f}, pos) * glm::rotate(glm::mat4{1.0f}, rotAngle, rotDir) *
+                               glm::scale(glm::mat4{1.0f}, scale);
+        auto transform = projection * view * model_transform;
         program_->set_uniform("transform", transform);
-
-        model_->draw(program_.get());
+        program_->set_uniform("modelTransform", model_transform);
+        material->set_to_program(*program_);
+        cube_mesh_->draw(*program_);
     }
 }
 

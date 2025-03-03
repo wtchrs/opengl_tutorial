@@ -64,8 +64,8 @@ struct Material {
     ///
     /// Sets the material properties to the specified shader program.
     ///
-    /// @param program: Pointer to the `Program` object.
-    void set_to_program(const Program *program) const;
+    /// @param program: Reference to the `Program` object.
+    void set_to_program(const Program &program) const;
 };
 
 /// # Mesh
@@ -161,10 +161,10 @@ public:
 
     /// ## Mesh::draw
     ///
-    /// @param program Pointer to the `Program` object.
+    /// @param program Reference to the `Program` object.
     ///
     /// Draws the mesh using the current OpenGL context.
-    void draw(const Program *program) const;
+    void draw(const Program &program) const;
 
 private:
     Mesh(uint32_t primitive_type, std::unique_ptr<VertexLayout> &&vertex_layout,

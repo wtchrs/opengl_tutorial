@@ -29,7 +29,7 @@ std::unique_ptr<Mesh> Mesh::create(
     vertex_layout->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
     vertex_layout->set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
     vertex_layout->set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tex_coord));
-    SPDLOG_INFO("Mesh has been generated");
+    SPDLOG_INFO("Mesh has been created");
     return std::unique_ptr<Mesh>{new Mesh{primitive_type, std::move(vertex_layout), vertex_buffer, index_buffer}};
 }
 
@@ -79,7 +79,7 @@ std::unique_ptr<Mesh> Mesh::create_cube() {
     );
 }
 
-void Mesh::draw(const Program *program) const {
+void Mesh::draw(const Program &program) const {
     vertex_layout_->bind();
     if (material_) {
         material_->set_to_program(program);
@@ -96,16 +96,16 @@ Mesh::Mesh(
     , vertex_buffer_{vertex_buffer}
     , index_buffer_{index_buffer} {}
 
-void Material::set_to_program(const Program *program) const {
+void Material::set_to_program(const Program &program) const {
     int texture_count = 0;
     if (diffuse_) {
-        program->set_texture(texture_count, *diffuse_);
-        program->set_uniform("material.diffuse", texture_count);
+        program.set_texture(texture_count, *diffuse_);
+        program.set_uniform("material.diffuse", texture_count);
         texture_count++;
     }
     if (specular_) {
-        program->set_texture(texture_count, *specular_);
-        program->set_uniform("material.specular", texture_count);
+        program.set_texture(texture_count, *specular_);
+        program.set_uniform("material.specular", texture_count);
     }
-    program->set_uniform("material.shininess", shininess_);
+    program.set_uniform("material.shininess", shininess_);
 }

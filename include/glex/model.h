@@ -29,6 +29,7 @@ public:
     /// ## Model::get_mesh_count
     ///
     /// @returns The number of meshes in the model.
+    [[nodiscard]]
     size_t get_mesh_count() const {
         return meshes_.size();
     }
@@ -40,16 +41,17 @@ public:
     /// @param index: The index of the mesh to retrieve.
     ///
     /// @returns Shared pointer to the `Mesh` object.
+    [[nodiscard]]
     std::shared_ptr<Mesh> get_mesh(const size_t index) const {
         return meshes_[index];
     }
 
     /// ## Model::draw
     ///
-    /// @param program Pointer to the `Program` object.
+    /// @param program Reference to the `Program` object.
     ///
     /// Draws the model by rendering all its meshes.
-    void draw(const Program *program) const;
+    void draw(const Program &program) const;
 
 private:
     /// ## Model::load_by_assimp

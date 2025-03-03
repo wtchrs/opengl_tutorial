@@ -16,7 +16,7 @@ std::unique_ptr<Model> Model::load(const std::string &filepath) {
     return std::move(model);
 }
 
-void Model::draw(const Program *program) const {
+void Model::draw(const Program &program) const {
     for (const auto &mesh : meshes_) {
         mesh->draw(program);
     }

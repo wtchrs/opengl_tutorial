@@ -53,6 +53,16 @@ public:
     /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
     static std::unique_ptr<Texture> create();
 
+    /// ## Texture::create
+    ///
+    /// Creates and initializes a new `Texture` object and set given image as texture image.
+    /// This Texture object has `GL_LINEAR` min and mag filters, and `GL_CLAMP_TO_EDGE` wrap modes as default.
+    ///
+    /// @param image: The `Image` object containing the texture data.
+    ///
+    /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
+    static std::unique_ptr<Texture> create(const Image &image);
+
     /// ## Texture::~Texture
     ///
     /// Destructor that deletes the OpenGL texture.

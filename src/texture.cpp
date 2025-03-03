@@ -21,6 +21,12 @@ std::unique_ptr<Texture> Texture::create() {
     return texture;
 }
 
+std::unique_ptr<Texture> Texture::create(const Image &image) {
+    auto texture = create();
+    texture->set_texture_image(0, image);
+    return std::move(texture);
+}
+
 Texture::Texture(const uint32_t texture_id)
     : texture_{texture_id} {}
 

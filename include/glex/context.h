@@ -4,9 +4,7 @@
 
 #include <memory>
 #include "glex/mesh.h"
-#include "glex/model.h"
 #include "glex/program.h"
-#include "glex/texture.h"
 
 /// # Context
 ///
@@ -22,31 +20,22 @@ class Context {
         glm::vec3 specular;
     };
 
-    struct Material {
-        /// Textures used as lighting maps.
-        std::unique_ptr<Texture> diffuse;
-        std::unique_ptr<Texture> specular;
-        float shininess;
-    };
-
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_;
     /// The mesh object used for rendering vertices.
     std::unique_ptr<Mesh> cube_mesh_;
-    /// The model object loaded from 'obj' file.
-    std::unique_ptr<Model> model_;
 
     ///@{
     /// Default parameters
-    static constexpr float CAMERA_PITCH{0.0f}; ///< Camera pitch
-    static constexpr float CAMERA_YAW{0.0f}; ///< Camera yaw
+    static constexpr float CAMERA_PITCH{-40.0f}; ///< Camera pitch
+    static constexpr float CAMERA_YAW{40.0f}; ///< Camera yaw
 
-    static constexpr glm::vec3 CAMERA_POS{0.0f, 0.0f, 3.0f}; ///< Camera position
+    static constexpr glm::vec3 CAMERA_POS{3.0f, 6.0f, 6.0f}; ///< Camera position
     static constexpr glm::vec3 CAMERA_FRONT{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking
     static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
 
     static constexpr Light LIGHT{
-            {2.0f, 2.0f, 2.0f}, 32.0f, {-1.0f, -1.0f, -1.0f}, {20.0f, 5.0f}, {0.1f, 0.1f, 0.1f}, {0.5f, 0.5f, 0.5f},
+            {0.0f, 3.5f, 4.0f}, 100.0f, {0.0f, -1.3f, -1.0f}, {35.0f, 5.0f}, {0.1f, 0.1f, 0.1f}, {0.5f, 0.5f, 0.5f},
             {1.0f, 1.0f, 1.0f},
     };
     ///@}
@@ -73,11 +62,12 @@ class Context {
     bool animation_{true};
     bool flash_light_mode_{false};
 
-    ///@{
     /// Lighting parameters
     Light light_ = LIGHT;
-    Material material_{{}, {}, 32.0f};
-    ///@}
+
+    std::shared_ptr<Material> plain_material_;
+    std::shared_ptr<Material> cube_material1_;
+    std::shared_ptr<Material> cube_material2_;
 
 public:
     /// ## Context::create
