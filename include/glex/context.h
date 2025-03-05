@@ -3,6 +3,7 @@
 
 
 #include <memory>
+#include "glex/framebuffer.h"
 #include "glex/mesh.h"
 #include "glex/program.h"
 
@@ -21,7 +22,7 @@ class Context {
     };
 
     /// The shader programs used for rendering.
-    std::unique_ptr<Program> program_, simple_program_, texture_program_;
+    std::unique_ptr<Program> program_, simple_program_, texture_program_, postprocess_program_;
     /// The mesh object used for rendering vertices.
     std::shared_ptr<Mesh> cube_mesh_, plain_mesh_;
 
@@ -29,6 +30,8 @@ class Context {
     std::shared_ptr<Material> cube_material1_;
     std::shared_ptr<Material> cube_material2_;
     std::shared_ptr<Material> window_material_;
+
+    std::unique_ptr<FrameBuffer> framebuffer_;
 
     ///@{
     /// Default parameters
@@ -69,6 +72,7 @@ class Context {
 
     /// Lighting parameters
     Light light_ = LIGHT;
+    float gamma_{1.0f};
 
 public:
     /// ## Context::create

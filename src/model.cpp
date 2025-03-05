@@ -87,7 +87,5 @@ load_texture(const std::string &dirname, const aiMaterial *material, const aiTex
     if (!image) {
         return nullptr;
     }
-    const std::shared_ptr texture = Texture::create();
-    texture->set_texture_image(0, *image);
-    return texture;
+    return Texture::create(*image);
 }

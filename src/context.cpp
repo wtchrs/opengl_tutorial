@@ -7,7 +7,6 @@
 #include <imgui.h>
 #include <memory>
 #include <spdlog/spdlog.h>
-#include <vector>
 #include "glex/common.h"
 #include "glex/image.h"
 #include "glex/mesh.h"
@@ -31,9 +30,10 @@ bool Context::init() {
     // Load programs.
     simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
     texture_program_ = Program::create("./shader/texture.vs", "./shader/texture.fs");
+    postprocess_program_ = Program::create("./shader/texture.vs", "./shader/gamma.fs");
     program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
 
-    if (!simple_program_ || !texture_program_ || !program_) {
+    if (!simple_program_ || !texture_program_ || !postprocess_program_ || !program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -112,7 +112,7 @@ void Context::render() {
             ImGui::ColorEdit3("l.diffuse", glm::value_ptr(light_.diffuse));
             ImGui::ColorEdit3("l.specular", glm::value_ptr(light_.specular));
             ImGui::Separator();
-            ImGui::Text("Material");
+            ImGui::DragFloat("Gamma", &gamma_, 0.01f, 0.0f, 2.0f);
         }
         ImGui::Separator();
         ImGui::Checkbox("Animation", &animation_);
@@ -123,8 +123,13 @@ void Context::render() {
             camera_pitch_ = CAMERA_PITCH;
             light_ = LIGHT;
         }
+
+        ImGui::Image(framebuffer_->get_color_attachment()->get(), ImVec2{150 * aspect_ratio_, 150});
     }
     ImGui::End();
+
+    // Bind framebuffer before clear buffers to draw at the framebuffer.
+    framebuffer_->bind();
 
     // Clear color buffer with `glClearColor` and depth buffer with 1.0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -261,6 +266,19 @@ void Context::render() {
         // or applying order-independent transparency.
         // See more: https://learnopengl.com/Guest-Articles/2020/OIT/Introduction
     }
+
+    // Draw framebuffer content to default frame using **postprocessing shader program**.
+
+    FrameBuffer::bind_to_default();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    postprocess_program_->use();
+    postprocess_program_->set_uniform("transform", glm::scale(glm::mat4{1.0f}, glm::vec3{2.0f, 2.0f, 1.0f}));
+    framebuffer_->get_color_attachment()->bind();
+    postprocess_program_->set_uniform("tex", 0);
+    postprocess_program_->set_uniform("gamma", gamma_);
+    plain_mesh_->draw(*postprocess_program_);
 }
 
 void Context::process_input(GLFWwindow *window) {
@@ -290,6 +308,7 @@ void Context::process_input(GLFWwindow *window) {
 
 void Context::reshape(const int width, const int height) {
     aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
+    framebuffer_ = FrameBuffer::create(Texture::create(width, height, GL_RGBA));
 }
 
 void Context::mouse_move(const double x, const double y) {

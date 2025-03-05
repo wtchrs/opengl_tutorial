@@ -4,31 +4,62 @@
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
 
-std::unique_ptr<Texture> Texture::create() {
+static GLenum channels_to_format(int channels) {
+    switch (channels) {
+    case 1: return GL_RED;
+    case 2: return GL_RG;
+    case 3: return GL_RGB;
+    default: return GL_RGBA;
+    }
+}
+
+std::unique_ptr<Texture> Texture::create(const Image &image) {
     uint32_t texture_id;
     glGenTextures(1, &texture_id);
     if (const auto error = glGetError(); error != GL_NO_ERROR) {
         SPDLOG_ERROR("Failed to create texture: {}", error);
         return nullptr;
     }
-    auto texture = std::unique_ptr<Texture>{new Texture{texture_id}};
+    const auto format = channels_to_format(image.get_channels());
+    auto texture = std::unique_ptr<Texture>{new Texture{texture_id, image.get_width(), image.get_height(), format}};
     texture->bind();
     // Set default filter and wrap.
     // GL_LINEAR_MIPMAP_LINEAR: Trilinear interpolation
     texture->set_filter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
     texture->set_wrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+    glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA, image.get_width(), image.get_height(), 0, format, GL_UNSIGNED_BYTE,
+            image.get_data()
+    );
+    glGenerateMipmap(GL_TEXTURE_2D);
+    SPDLOG_INFO(
+            "Texture image has been set: {}x{}, {} channels", image.get_width(), image.get_height(),
+            image.get_channels()
+    );
+    SPDLOG_INFO("Texture has been created: {}", texture_id);
+    return std::move(texture);
+}
+
+std::unique_ptr<Texture> Texture::create(int width, int height, uint32_t format) {
+    uint32_t texture_id;
+    glGenTextures(1, &texture_id);
+    if (const auto error = glGetError(); error != GL_NO_ERROR) {
+        SPDLOG_ERROR("Failed to create texture: {}", error);
+        return nullptr;
+    }
+    auto texture = std::unique_ptr<Texture>{new Texture{texture_id, width, height, format}};
+    texture->bind();
+    texture->set_filter(GL_LINEAR, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
     SPDLOG_INFO("Texture has been created: {}", texture_id);
     return texture;
 }
 
-std::unique_ptr<Texture> Texture::create(const Image &image) {
-    auto texture = create();
-    texture->set_texture_image(0, image);
-    return std::move(texture);
-}
-
-Texture::Texture(const uint32_t texture_id)
-    : texture_{texture_id} {}
+Texture::Texture(uint32_t texture_id, int width, int height, uint32_t format)
+    : texture_{texture_id}
+    , width_{width}
+    , height_{height}
+    , format_{format} {}
 
 Texture::~Texture() {
     if (texture_) {
@@ -49,25 +80,4 @@ void Texture::set_filter(const int32_t min_filter, const int32_t mag_filter) con
 void Texture::set_wrap(const int32_t s_wrap, const int32_t t_wrap) const {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, s_wrap);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, t_wrap);
-}
-
-void Texture::set_texture_image(const int32_t level, const Image &image) {
-    GLenum format;
-    switch (image.get_channels()) {
-    case 1: format = GL_RED; break;
-    case 2: format = GL_RG; break;
-    case 3: format = GL_RGB; break;
-    default: format = GL_RGBA; break;
-    }
-    glTexImage2D(
-            GL_TEXTURE_2D, level, //
-            GL_RGBA, image.get_width(), image.get_height(), // OpenGL texture settings
-            0, // border
-            format, GL_UNSIGNED_BYTE, image.get_data() // original image information
-    );
-    glGenerateMipmap(GL_TEXTURE_2D);
-    SPDLOG_INFO(
-            "Texture image has been set: {}x{}, {} channels", image.get_width(), image.get_height(),
-            image.get_channels()
-    );
 }

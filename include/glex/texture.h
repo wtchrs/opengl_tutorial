@@ -13,8 +13,7 @@
 /// ## Examples
 /// ```cpp
 /// auto image = Image::load("image.jpg");
-/// auto texture = Texture::create();
-/// texture->set_texture_image(0, *image);
+/// auto texture = Texture::create(*image);
 ///
 /// // ...do something
 /// ```
@@ -44,24 +43,28 @@
 class Texture {
     const uint32_t texture_;
 
+    const int width_, height_;
+    const uint32_t format_;
+
 public:
     /// ## Texture::create
     ///
-    /// Creates and initializes a new `Texture` object.
-    /// This Texture object has `GL_LINEAR` min and mag filters, and `GL_CLAMP_TO_EDGE` wrap modes as default.
-    ///
-    /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
-    static std::unique_ptr<Texture> create();
-
-    /// ## Texture::create
-    ///
-    /// Creates and initializes a new `Texture` object and set given image as texture image.
-    /// This Texture object has `GL_LINEAR` min and mag filters, and `GL_CLAMP_TO_EDGE` wrap modes as default.
+    /// Creates and initializes a new `Texture` object with **given image**.
+    /// This Texture object has `GL_LINEAR_MIPMAP_LINEAR` min filter and `GL_LINEAR` mag filter,
+    /// and `GL_CLAMP_TO_EDGE` wrap modes as default.
     ///
     /// @param image: The `Image` object containing the texture data.
     ///
     /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
     static std::unique_ptr<Texture> create(const Image &image);
+
+    /// ## Texture::create
+    ///
+    /// Creates and initializes a new **empty** `Texture` object.
+    /// This Texture object has `GL_LINEAR` min and mag filters, and `GL_CLAMP_TO_EDGE` wrap modes as default.
+    ///
+    /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
+    static std::unique_ptr<Texture> create(int width, int height, uint32_t format);
 
     /// ## Texture::~Texture
     ///
@@ -74,6 +77,30 @@ public:
     [[nodiscard]]
     uint32_t get() const {
         return texture_;
+    }
+
+    /// ## Texture::get_width
+    ///
+    /// @returns width of texture.
+    [[nodiscard]]
+    int get_width() const {
+        return width_;
+    }
+
+    /// ## Texture::get_height
+    ///
+    /// @returns height of texture.
+    [[nodiscard]]
+    int get_height() const {
+        return height_;
+    }
+
+    /// ## Texture::get_format
+    ///
+    /// @returns format of texture.
+    [[nodiscard]]
+    int get_format() const {
+        return format_;
     }
 
     /// ## Texture::bind
@@ -99,17 +126,8 @@ public:
     /// @param t_wrap: The wrapping mode for texture coordinate `t`.
     void set_wrap(int32_t s_wrap, int32_t t_wrap) const;
 
-    /// # Texture::set_texture_image
-    ///
-    /// Sets the texture image data.
-    ///
-    /// @param level: The level-of-detail number.
-    ///            Level 0 is the base image level. Level n is the nth mipmap reduction image.
-    /// @param image: The `Image` object containing the texture data.
-    void set_texture_image(int32_t level, const Image &image);
-
 private:
-    explicit Texture(uint32_t texture_id);
+    Texture(uint32_t texture_id, int width, int height, uint32_t format);
 };
 
 

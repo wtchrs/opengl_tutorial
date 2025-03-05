@@ -28,6 +28,7 @@ file(GLOB_RECURSE SOURCES
     src/buffer.cpp
     src/common.cpp
     src/context.cpp
+    src/framebuffer.cpp
     src/image.cpp
     src/mesh.cpp
     src/model.cpp
