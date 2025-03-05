@@ -190,6 +190,8 @@ void Context::render() {
             {{0.0f, 0.75f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_mesh_, cube_material2_, true},
     };
 
+    glEnable(GL_CULL_FACE);
+
     for (const auto &[pos, scale, rotDir, rotAngle, mesh, material, outline] : cubes) {
         if (outline) {
             // Set to mark stencil buffer that object is drawn.
@@ -238,6 +240,8 @@ void Context::render() {
     // Enable blend to draw transparent window
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // To show both sides of face.
+    glDisable(GL_CULL_FACE);
 
     for (auto &[pos, scale, rotDir, rotAngle, mesh, material, outline] : windows) {
         texture_program_->use();
