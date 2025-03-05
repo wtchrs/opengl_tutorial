@@ -14,7 +14,7 @@
 /// ```cpp
 /// auto image = Image::load("image.jpg");
 /// auto texture = Texture::create(*image);
-///
+/// texture->bind_to_unit(i);
 /// // ...do something
 /// ```
 ///
@@ -32,9 +32,11 @@
 ///
 /// glTexImage2D(
 ///         GL_TEXTURE_2D, 0, GL_RGBA, image->get_width(), image->get_height(), 0,
-///         GL_RGB, // channel of image
-///         GL_UNSIGNED_BYTE, image->get_data()
+///         GL_RGB, GL_UNSIGNED_BYTE, image->get_data()
 /// );
+///
+/// glActiveTexture(GL_TEXTURE0 + i);
+/// glBindTexture(GL_TEXTURE_2D, texture_id);
 ///
 /// // ...do something
 ///
@@ -107,6 +109,15 @@ public:
     ///
     /// Binds the OpenGL texture.
     void bind() const;
+
+    /// ## Texture::bind_to_unit
+    ///
+    /// Assigns a texture to a texture unit. After this, the texture can be bound to a uniform variable by passing the
+    /// unit ID as the second argument of `Program::set_uniform(std::string&, int)`.
+    ///
+    /// @param texture_unit: The texture unit ID to assign the texture to. It must be betwwen 0 and 31 because OpenGL
+    /// provides only 32 texture units.
+    void bind_to_unit(uint32_t texture_unit) const;
 
     /// ## Texture::set_filter
     ///

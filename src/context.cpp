@@ -250,7 +250,7 @@ void Context::render() {
 
     for (auto &[pos, scale, rotDir, rotAngle, mesh, material, outline] : windows) {
         texture_program_->use();
-        texture_program_->set_texture(0, *material->diffuse_);
+        material->diffuse_->bind_to_unit(0);
         texture_program_->set_uniform("tex", 0);
 
         // Draw window.

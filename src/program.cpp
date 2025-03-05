@@ -97,14 +97,3 @@ void Program::set_uniform(const std::string &name, const glm::mat4 &value) const
     const auto loc = glGetUniformLocation(program_, name.c_str());
     glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
 }
-
-void Program::set_texture(int slot, const Texture &texture) const {
-    if (slot < 0 || slot >= 32) {
-        SPDLOG_ERROR("Failed to set texture: slot must be between 0 and 31: received: {}", slot);
-        return;
-    }
-    glActiveTexture(GL_TEXTURE0 + slot);
-    texture.bind();
-    SPDLOG_DEBUG("Texture has been set to slot GL_TEXTURE{}:", slot);
-    SPDLOG_DEBUG("  Use this texture by calling `set_uniform(\"uniformName\", {})`", slot);
-}

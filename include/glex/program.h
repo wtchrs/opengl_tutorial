@@ -7,7 +7,6 @@
 #include <memory>
 #include <vector>
 #include "common.h"
-#include "glex/texture.h"
 #include "shader.h"
 
 /// # Program
@@ -104,16 +103,6 @@ public:
     /// @param name: The name of the uniform variable in the shader.
     /// @param value: The `glm::mat4` matrix value to set the uniform to.
     void set_uniform(const std::string &name, const glm::mat4 &value) const;
-
-    /// ## Program::set_texture
-    ///
-    /// Assigns a texture to a texture slot in this shader program.
-    /// After this, the texture can be bound to a uniform variable by passing the slot ID as the second argument of
-    /// `Program::set_uniform(std::string&, int)`.
-    ///
-    /// @param slot: The texture slot ID to assign the texture to.
-    /// @param texture: The `Texture` object to assign.
-    void set_texture(int slot, const Texture &texture) const;
 
 private:
     explicit Program(uint32_t program);

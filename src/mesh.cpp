@@ -113,12 +113,12 @@ Mesh::Mesh(
 void Material::set_to_program(const Program &program) const {
     int texture_count = 0;
     if (diffuse_) {
-        program.set_texture(texture_count, *diffuse_);
+        diffuse_->bind_to_unit(texture_count);
         program.set_uniform("material.diffuse", texture_count);
         texture_count++;
     }
     if (specular_) {
-        program.set_texture(texture_count, *specular_);
+        specular_->bind_to_unit(texture_count);
         program.set_uniform("material.specular", texture_count);
     }
     program.set_uniform("material.shininess", shininess_);

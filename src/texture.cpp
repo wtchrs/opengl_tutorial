@@ -72,6 +72,15 @@ void Texture::bind() const {
     glBindTexture(GL_TEXTURE_2D, texture_);
 }
 
+void Texture::bind_to_unit(uint32_t texture_unit) const {
+    if (texture_unit < 0 || texture_unit > 31) {
+        SPDLOG_ERROR("Texture unit id to bind must be between 0 and 31, got: {}", texture_unit);
+        return;
+    }
+    glActiveTexture(GL_TEXTURE0 + texture_unit);
+    bind();
+}
+
 void Texture::set_filter(const int32_t min_filter, const int32_t mag_filter) const {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
