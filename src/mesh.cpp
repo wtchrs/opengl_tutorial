@@ -1,4 +1,5 @@
 #include "glex/mesh.h"
+#include <cstdint>
 #include <spdlog/spdlog.h>
 
 std::unique_ptr<Mesh> Mesh::create(
@@ -67,13 +68,26 @@ std::unique_ptr<Mesh> Mesh::create_cube() {
             {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
     };
     constexpr uint32_t INDICES[] = {
-            0,  1,  2,  0,  2,  3, // bottom
-            4,  5,  6,  4,  6,  7, // back
-            8,  9,  10, 8,  10, 11, // right
-            12, 13, 14, 12, 14, 15, // front
-            16, 17, 18, 16, 18, 19, // left
-            20, 21, 22, 20, 22, 23, // top
+            0,  2,  1,  0,  3,  2, // bottom
+            4,  6,  5,  4,  7,  6, // back
+            8,  10, 9,  8,  11, 10, // right
+            12, 14, 13, 12, 15, 14, // front
+            16, 18, 17, 16, 19, 18, // left
+            20, 22, 21, 20, 23, 22, // top
     };
+    return create(
+            VERTICES, sizeof(VERTICES) / sizeof(Vertex), INDICES, sizeof(INDICES) / sizeof(uint32_t), GL_TRIANGLES
+    );
+}
+
+std::unique_ptr<Mesh> Mesh::create_plain() {
+    constexpr Vertex VERTICES[] = {
+            {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+            {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+            {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    };
+    constexpr uint32_t INDICES[] = {0, 2, 1, 0, 3, 2};
     return create(
             VERTICES, sizeof(VERTICES) / sizeof(Vertex), INDICES, sizeof(INDICES) / sizeof(uint32_t), GL_TRIANGLES
     );

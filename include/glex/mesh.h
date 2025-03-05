@@ -115,8 +115,17 @@ public:
     ///
     /// Creates and initializes a new `Mesh` object representing a cube.
     ///
-    /// @returns `Mesh` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
+    /// @returns Cube-shaped `Mesh` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization
+    /// fails.
     static std::unique_ptr<Mesh> create_cube();
+
+    /// ## Mesh::create_plain
+    ///
+    /// Creates and initializes a new `Mesh` object representing a XY-plain.
+    ///
+    /// @returns plain-shaped `Mesh` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization
+    /// fails.
+    static std::unique_ptr<Mesh> create_plain();
 
     /// ## Mesh::get_vertex_layout
     ///

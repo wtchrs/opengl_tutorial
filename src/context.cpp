@@ -1,5 +1,6 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
@@ -23,14 +24,16 @@ std::unique_ptr<Context> Context::create() {
 }
 
 bool Context::init() {
-    // Create cube mesh.
+    // Create meshes.
     cube_mesh_ = Mesh::create_cube();
+    plain_mesh_ = Mesh::create_plain();
 
     // Load programs.
     simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
+    texture_program_ = Program::create("./shader/texture.vs", "./shader/texture.fs");
     program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
 
-    if (!simple_program_ || !program_) {
+    if (!simple_program_ || !texture_program_ || !program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -48,7 +51,7 @@ bool Context::init() {
 
     // Create plain material.
     std::shared_ptr plain_diffuse = Texture::create(*Image::load("./image/marble.jpg"));
-    plain_material_ = std::make_shared<Material>(plain_diffuse, gray_texture, 128.0f);
+    floor_material_ = std::make_shared<Material>(plain_diffuse, gray_texture, 128.0f);
 
     // Create cube1 material.
     std::shared_ptr cube_diffuse1 = Texture::create(*Image::load("./image/container.jpg"));
@@ -58,6 +61,10 @@ bool Context::init() {
     std::shared_ptr cube_diffuse2 = Texture::create(*Image::load("./image/container2.png"));
     std::shared_ptr cube_specular2 = Texture::create(*Image::load("./image/container2_specular.png"));
     cube_material2_ = std::make_shared<Material>(cube_diffuse2, cube_specular2, 64.0f);
+
+    // Load window texture.
+    std::shared_ptr window_texture = Texture::create(*Image::load("./image/blending_transparent_window.png"));
+    window_material_ = std::make_shared<Material>(window_texture, nullptr, 32.0f);
 
     // Enable depth test.
     glEnable(GL_DEPTH_TEST);
@@ -166,22 +173,24 @@ void Context::render() {
     program_->set_uniform("light.diffuse", light_.diffuse);
     program_->set_uniform("light.specular", light_.specular);
 
-    struct CubeObject {
+    // TODO: Extract to separate files and add some useful functions.
+    struct Object {
         glm::vec3 pos;
         glm::vec3 scale;
         glm::vec3 rotDir;
         float rotAngle;
+        std::shared_ptr<Mesh> mesh;
         std::shared_ptr<Material> material;
         bool outline;
     };
 
-    CubeObject cubes[] = {
-            {{0.0f, -0.5f, 0.0f}, {10.0f, 1.0f, 10.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_material_, false},
-            {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_material1_, false},
-            {{0.0f, 0.75f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_material2_, true},
+    Object cubes[] = {
+            {{0.0f, -0.5f, 0.0f}, {10.0f, 1.0f, 10.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, cube_mesh_, floor_material_, false},
+            {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_mesh_, cube_material1_, false},
+            {{0.0f, 0.75f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_mesh_, cube_material2_, true},
     };
 
-    for (const auto &[pos, scale, rotDir, rotAngle, material, outline] : cubes) {
+    for (const auto &[pos, scale, rotDir, rotAngle, mesh, material, outline] : cubes) {
         if (outline) {
             // Set to mark stencil buffer that object is drawn.
             glEnable(GL_STENCIL_TEST);
@@ -197,7 +206,7 @@ void Context::render() {
         program_->set_uniform("transform", transform);
         program_->set_uniform("modelTransform", model_transform);
         material->set_to_program(*program_);
-        cube_mesh_->draw(*program_);
+        mesh->draw(*program_);
 
         if (outline) {
             // Set to allow to draw only the position that are not marked in stencil buffer.
@@ -210,7 +219,7 @@ void Context::render() {
             simple_program_->set_uniform("color", glm::vec4{1.0f, 1.0f, 0.5f, 1.0f});
             auto outline_transform = transform * glm::scale(glm::mat4{1.0f}, glm::vec3{1.05f, 1.05f, 1.05f});
             simple_program_->set_uniform("transform", outline_transform);
-            cube_mesh_->draw(*simple_program_);
+            mesh->draw(*simple_program_);
 
             // Restore settings.
             glEnable(GL_DEPTH_TEST);
@@ -218,6 +227,35 @@ void Context::render() {
             glStencilFunc(GL_ALWAYS, 1, 0xff);
             glStencilMask(0xff);
         }
+    }
+
+    Object windows[] = {
+            {{0.0f, 0.5f, 4.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_mesh_, window_material_, false},
+            {{0.2f, 0.5f, 5.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_mesh_, window_material_, false},
+            {{0.4f, 0.5f, 6.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_mesh_, window_material_, false},
+    };
+
+    // Enable blend to draw transparent window
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    for (auto &[pos, scale, rotDir, rotAngle, mesh, material, outline] : windows) {
+        texture_program_->use();
+        texture_program_->set_texture(0, *material->diffuse_);
+        texture_program_->set_uniform("tex", 0);
+
+        // Draw window.
+        auto model_transform = glm::translate(glm::mat4{1.0f}, pos) * glm::rotate(glm::mat4{1.0f}, rotAngle, rotDir) *
+                               glm::scale(glm::mat4{1.0f}, scale);
+        auto transform = projection * view * model_transform;
+        texture_program_->set_uniform("transform", transform);
+        mesh->draw(*texture_program_);
+
+        // You can see the windows properly if rendered in order of the farthest windows,
+        // But if the nearer window is rendered first, windows behind it are not rendered because of the depth test.
+        // For avoiding it, you can consider ordered transparency (sorting transparent objects before rendering),
+        // or applying order-independent transparency.
+        // See more: https://learnopengl.com/Guest-Articles/2020/OIT/Introduction
     }
 }
 
