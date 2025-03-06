@@ -3,16 +3,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <glm/gtc/type_ptr.hpp>
 #include <stb_image.h>
 
-std::unique_ptr<Image> Image::load(const std::string &filepath) {
+std::unique_ptr<Image> Image::load(const std::string &filepath, const bool flip_vertical) {
     int width, height, channels;
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(flip_vertical);
     unsigned char *image = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
     if (!image) {
         SPDLOG_ERROR("Failed to load image \"{}\"", filepath);

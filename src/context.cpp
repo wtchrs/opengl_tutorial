@@ -31,9 +31,12 @@ bool Context::init() {
     simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
     texture_program_ = Program::create("./shader/texture.vs", "./shader/texture.fs");
     postprocess_program_ = Program::create("./shader/texture.vs", "./shader/gamma.fs");
+    skybox_program_ = Program::create("./shader/skybox.vs", "./shader/skybox.fs");
+    env_map_program_ = Program::create("./shader/env_map.vs", "./shader/env_map.fs");
     program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
 
-    if (!simple_program_ || !texture_program_ || !postprocess_program_ || !program_) {
+    if (!simple_program_ || !texture_program_ || !postprocess_program_ || !skybox_program_ || !env_map_program_ ||
+        !program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -65,6 +68,13 @@ bool Context::init() {
     // Load window texture.
     std::shared_ptr window_texture = Texture::create(*Image::load("./image/blending_transparent_window.png"));
     window_material_ = std::make_shared<Material>(window_texture, nullptr, 32.0f);
+
+    // Load cube texture.
+    cube_texture_ = CubeTexture::create_from_images(
+            {*Image::load("./image/skybox/right.jpg", false), *Image::load("./image/skybox/left.jpg", false),
+             *Image::load("./image/skybox/top.jpg", false), *Image::load("./image/skybox/bottom.jpg", false),
+             *Image::load("./image/skybox/front.jpg", false), *Image::load("./image/skybox/back.jpg", false)}
+    );
 
     // Enable depth test.
     glEnable(GL_DEPTH_TEST);
@@ -148,7 +158,27 @@ void Context::render() {
 
     const auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
 
-    static constexpr auto obj_rotate_direction = glm::vec3{1.0f, 0.5f, 0.0f};
+    // Draw skybox using **cube texture**.
+    auto skybox_model_transform =
+            glm::translate(glm::mat4{1.0f}, camera_pos_) * glm::scale(glm::mat4{1.0f}, glm::vec3{50.0f});
+    skybox_program_->use();
+    cube_texture_->bind();
+    skybox_program_->set_uniform("skybox", 0);
+    skybox_program_->set_uniform("transform", projection * view * skybox_model_transform);
+    cube_mesh_->draw(*skybox_program_);
+
+    // Draw a cube with mirrored surface using **environment map**.
+    auto env_map_cube_model = glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, 0.75f, -2.0f}) *
+                              glm::rotate(glm::mat4{1.0f}, glm::radians(40.0f), glm::vec3{0.0f, 1.0f, 0.0f}) *
+                              glm::scale(glm::mat4{1.0f}, glm::vec3{1.5f});
+    env_map_program_->use();
+    env_map_program_->set_uniform("projection", projection);
+    env_map_program_->set_uniform("view", view);
+    env_map_program_->set_uniform("model", env_map_cube_model);
+    env_map_program_->set_uniform("cameraPos", camera_pos_);
+    cube_texture_->bind();
+    env_map_program_->set_uniform("skybox", 0);
+    cube_mesh_->draw(*env_map_program_);
 
     auto light_pos = light_.position;
     auto light_dir = light_.direction;

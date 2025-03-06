@@ -1,5 +1,7 @@
 #include "glex/texture.h"
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
@@ -89,4 +91,43 @@ void Texture::set_filter(const int32_t min_filter, const int32_t mag_filter) con
 void Texture::set_wrap(const int32_t s_wrap, const int32_t t_wrap) const {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, s_wrap);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, t_wrap);
+}
+
+std::unique_ptr<CubeTexture>
+CubeTexture::create_from_images(const std::vector<std::reference_wrapper<const Image>> &images) {
+    uint32_t texture_id;
+    glGenTextures(1, &texture_id);
+    if (const auto error = glGetError(); error != GL_NO_ERROR) {
+        SPDLOG_ERROR("Failed to create texture: {}", error);
+        return nullptr;
+    }
+    auto cube_texture = std::unique_ptr<CubeTexture>{new CubeTexture{texture_id}};
+    cube_texture->bind();
+    // Set filter and wrap.
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    // Apply each images to cube map texture.
+    for (size_t i = 0; i < images.size(); ++i) {
+        auto &image = images[i].get();
+        auto format = channels_to_format(image.get_channels());
+        glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<uint32_t>(i), 0, GL_RGB, image.get_width(),
+                image.get_height(), 0, format, GL_UNSIGNED_BYTE, image.get_data()
+        );
+    }
+    SPDLOG_INFO("Cube texture has been created: {}", texture_id);
+    return std::move(cube_texture);
+}
+
+CubeTexture::~CubeTexture() {
+    if (cube_texture_) {
+        glDeleteTextures(1, &cube_texture_);
+    }
+}
+
+void CubeTexture::bind() const {
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cube_texture_);
 }

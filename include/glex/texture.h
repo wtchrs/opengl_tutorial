@@ -3,7 +3,9 @@
 
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <vector>
 #include "glex/image.h"
 
 /// # Texture
@@ -139,6 +141,28 @@ public:
 
 private:
     Texture(uint32_t texture_id, int width, int height, uint32_t format);
+};
+
+
+class CubeTexture {
+    const uint32_t cube_texture_;
+
+public:
+    static std::unique_ptr<CubeTexture>
+    create_from_images(const std::vector<std::reference_wrapper<const Image>> &images);
+
+    ~CubeTexture();
+
+    [[nodiscard]]
+    uint32_t get() const {
+        return cube_texture_;
+    }
+
+    void bind() const;
+
+private:
+    explicit CubeTexture(uint32_t texture_id)
+        : cube_texture_{texture_id} {}
 };
 
 

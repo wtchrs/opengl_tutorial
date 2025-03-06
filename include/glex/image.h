@@ -24,10 +24,11 @@ public:
     /// Loads an image from the specified file path.
     ///
     /// @param filepath: The path to the image file.
+    /// @param flip_vertical: Whether to load the image with its vertical flipped or load it as is.
     ///
     /// @returns `std::unique_ptr` to an `Image` object if successful, or `nullptr` if loading fails.
     [[nodiscard]]
-    static std::unique_ptr<Image> load(const std::string &filepath);
+    static std::unique_ptr<Image> load(const std::string &filepath, bool flip_vertical = true);
 
     /// ## Image::create
     ///
