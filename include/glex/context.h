@@ -3,6 +3,7 @@
 
 
 #include <memory>
+#include <vector>
 #include "glex/framebuffer.h"
 #include "glex/mesh.h"
 #include "glex/program.h"
@@ -23,14 +24,19 @@ class Context {
 
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_, texture_program_, postprocess_program_, skybox_program_,
-            env_map_program_;
+            env_map_program_, grass_program_;
     /// The mesh object used for rendering vertices.
     std::shared_ptr<Mesh> cube_mesh_, plain_mesh_;
 
-    std::shared_ptr<Material> floor_material_, cube_material1_, cube_material2_, window_material_;
+    std::unique_ptr<Buffer> grass_pos_buffer_;
+    std::unique_ptr<VertexLayout> grass_instance_;
+
+    std::shared_ptr<Material> floor_material_, cube_material1_, cube_material2_, window_material_, grass_material_;
     std::unique_ptr<CubeTexture> cube_texture_;
 
     std::unique_ptr<FrameBuffer> framebuffer_;
+
+    std::vector<glm::vec3> grass_pos_;
 
     ///@{
     /// Default parameters

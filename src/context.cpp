@@ -1,16 +1,19 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
+#include <cstddef>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
 #include <imgui.h>
 #include <memory>
+#include <random>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
 #include "glex/image.h"
 #include "glex/mesh.h"
 #include "glex/texture.h"
+#include "glex/vertex_layout.h"
 
 std::unique_ptr<Context> Context::create() {
     auto context = std::unique_ptr<Context>{new Context{}};
@@ -27,16 +30,46 @@ bool Context::init() {
     cube_mesh_ = Mesh::create_cube();
     plain_mesh_ = Mesh::create_plain();
 
+    // Generate grass position randomly.
+    std::random_device rd;
+    std::mt19937 gen{rd()};
+    std::uniform_real_distribution<float> dis_xz{-5.0f, 5.0f}; // xz values for position
+    std::uniform_real_distribution<float> dis_y{0.0f, 360.0f}; // y values for rotation
+    constexpr size_t NUM_GRASS = 10000;
+    grass_pos_.reserve(NUM_GRASS);
+    for (size_t i = 0; i < NUM_GRASS; ++i) {
+        grass_pos_.emplace_back(dis_xz(gen), dis_y(gen), dis_xz(gen));
+    }
+
+    // Instancing
+    grass_instance_ = VertexLayout::create();
+    grass_instance_->bind();
+    // Set vertex-wise attributes.
+    plain_mesh_->get_vertex_buffer()->bind();
+    grass_instance_->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    grass_instance_->set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
+    grass_instance_->set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tex_coord));
+    // Set instance-wise attributes.
+    grass_pos_buffer_ = Buffer::create_with_data(
+            GL_ARRAY_BUFFER, GL_STATIC_DRAW, grass_pos_.data(), sizeof(glm::vec3), grass_pos_.size()
+    );
+    grass_pos_buffer_->bind();
+    grass_instance_->set_attrib(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+    glVertexAttribDivisor(3, 1); // Set attribute at index '3' to update once per '1' instance.
+    // Index buffer
+    plain_mesh_->get_index_buffer()->bind();
+
     // Load programs.
+    program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
     simple_program_ = Program::create("./shader/simple.vs", "./shader/simple.fs");
     texture_program_ = Program::create("./shader/texture.vs", "./shader/texture.fs");
     postprocess_program_ = Program::create("./shader/texture.vs", "./shader/gamma.fs");
     skybox_program_ = Program::create("./shader/skybox.vs", "./shader/skybox.fs");
     env_map_program_ = Program::create("./shader/env_map.vs", "./shader/env_map.fs");
-    program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
+    grass_program_ = Program::create("./shader/grass.vs", "./shader/grass.fs");
 
-    if (!simple_program_ || !texture_program_ || !postprocess_program_ || !skybox_program_ || !env_map_program_ ||
-        !program_) {
+    if (!program_ || !simple_program_ || !texture_program_ || !postprocess_program_ || !skybox_program_ ||
+        !env_map_program_ || !grass_program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -68,6 +101,10 @@ bool Context::init() {
     // Load window texture.
     std::shared_ptr window_texture = Texture::create(*Image::load("./image/blending_transparent_window.png"));
     window_material_ = std::make_shared<Material>(window_texture, nullptr, 32.0f);
+
+    // Load grass texture.
+    std::shared_ptr grass_texture = Texture::create(*Image::load("./image/grass.png"));
+    grass_material_ = std::make_shared<Material>(grass_texture, nullptr, 32.0f);
 
     // Load cube texture.
     cube_texture_ = CubeTexture::create_from_images(
@@ -296,6 +333,19 @@ void Context::render() {
         // or applying order-independent transparency.
         // See more: https://learnopengl.com/Guest-Articles/2020/OIT/Introduction
     }
+
+    // Draw grasses using **instancing**.
+    grass_program_->use();
+    grass_material_->diffuse_->bind_to_unit(0);
+    grass_program_->set_uniform("tex", 0);
+    grass_instance_->bind();
+    auto model_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.5f, 0.0f});
+    auto transform = projection * view * model_transform;
+    grass_program_->set_uniform("transform", transform);
+    glDrawElementsInstanced(
+            GL_TRIANGLES, plain_mesh_->get_index_buffer()->get_count(), GL_UNSIGNED_INT, 0,
+            grass_pos_buffer_->get_count()
+    );
 
     // Draw framebuffer content to default frame using **postprocessing shader program**.
 
