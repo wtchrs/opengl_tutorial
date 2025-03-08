@@ -29,6 +29,8 @@ uniform vec3 viewPos;
 uniform Light light;
 uniform Material material;
 
+uniform int blinn;
+
 void main() {
     vec3 texColor = texture2D(material.diffuse, texCoord).xyz;
     vec3 specColor = texture2D(material.specular, texCoord).xyz;
@@ -53,9 +55,17 @@ void main() {
         vec3 diffuse = diff * texColor * light.diffuse;
 
         // Specular light
+        float spec = 0.0;
         vec3 viewDir = normalize(viewPos - position);
-        vec3 reflectDir = reflect(-lightDir, pixelNorm);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+        if (blinn == 0) {
+            // Phong shading
+            vec3 reflectDir = reflect(-lightDir, pixelNorm);
+            spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+        } else {
+            // Blinn-Phong shading
+            vec3 halfDir = normalize(lightDir + viewDir);
+            spec = pow(max(dot(halfDir, pixelNorm), 0.0), material.shininess);
+        }
         vec3 specular = spec * specColor * light.specular;
 
         // Multiply intensity to diffuse and specular light for smooth border.

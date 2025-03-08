@@ -77,6 +77,7 @@ class Context {
 
     /// Lighting parameters
     Light light_ = LIGHT;
+    bool blinn_ = false;
     float gamma_{1.0f};
 
 public:

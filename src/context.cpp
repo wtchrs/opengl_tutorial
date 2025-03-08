@@ -87,7 +87,7 @@ bool Context::init() {
 
     // Create plain material.
     std::shared_ptr plain_diffuse = Texture::create(*Image::load("./image/marble.jpg"));
-    floor_material_ = std::make_shared<Material>(plain_diffuse, gray_texture, 128.0f);
+    floor_material_ = std::make_shared<Material>(plain_diffuse, gray_texture, 8.0f);
 
     // Create cube1 material.
     std::shared_ptr cube_diffuse1 = Texture::create(*Image::load("./image/container.jpg"));
@@ -160,6 +160,7 @@ void Context::render() {
             ImGui::ColorEdit3("l.specular", glm::value_ptr(light_.specular));
             ImGui::Separator();
             ImGui::DragFloat("Gamma", &gamma_, 0.01f, 0.0f, 2.0f);
+            ImGui::Checkbox("Blinn-Phong", &blinn_);
         }
         ImGui::Separator();
         ImGui::Checkbox("Animation", &animation_);
@@ -205,6 +206,7 @@ void Context::render() {
     cube_mesh_->draw(*skybox_program_);
 
     // Draw a cube with mirrored surface using **environment map**.
+    /*
     auto env_map_cube_model = glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, 0.75f, -2.0f}) *
                               glm::rotate(glm::mat4{1.0f}, glm::radians(40.0f), glm::vec3{0.0f, 1.0f, 0.0f}) *
                               glm::scale(glm::mat4{1.0f}, glm::vec3{1.5f});
@@ -216,6 +218,7 @@ void Context::render() {
     cube_texture_->bind();
     env_map_program_->set_uniform("skybox", 0);
     cube_mesh_->draw(*env_map_program_);
+    */
 
     auto light_pos = light_.position;
     auto light_dir = light_.direction;
@@ -227,7 +230,7 @@ void Context::render() {
         const auto light_model =
                 glm::translate(glm::mat4{1.0f}, light_pos) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
         simple_program_->use();
-        simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 0.0f});
+        simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 1.0f});
         simple_program_->set_uniform("transform", projection * view * light_model);
         cube_mesh_->draw(*simple_program_);
     }
@@ -244,6 +247,7 @@ void Context::render() {
     program_->set_uniform("light.ambient", light_.ambient);
     program_->set_uniform("light.diffuse", light_.diffuse);
     program_->set_uniform("light.specular", light_.specular);
+    program_->set_uniform("blinn", blinn_);
 
     // TODO: Extract to separate files and add some useful functions.
     struct Object {
@@ -335,6 +339,7 @@ void Context::render() {
     }
 
     // Draw grasses using **instancing**.
+    /*
     grass_program_->use();
     grass_material_->diffuse_->bind_to_unit(0);
     grass_program_->set_uniform("tex", 0);
@@ -346,6 +351,7 @@ void Context::render() {
             GL_TRIANGLES, plain_mesh_->get_index_buffer()->get_count(), GL_UNSIGNED_INT, 0,
             grass_pos_buffer_->get_count()
     );
+    */
 
     // Draw framebuffer content to default frame using **postprocessing shader program**.
 
