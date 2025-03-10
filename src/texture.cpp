@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
@@ -23,7 +24,9 @@ std::unique_ptr<Texture> Texture::create(const Image &image) {
         return nullptr;
     }
     const auto format = channels_to_format(image.get_channels());
-    auto texture = std::unique_ptr<Texture>{new Texture{texture_id, image.get_width(), image.get_height(), format}};
+    auto texture = std::unique_ptr<Texture>{
+            new Texture{texture_id, image.get_width(), image.get_height(), format, GL_UNSIGNED_BYTE}
+    };
     texture->bind();
     // Set default filter and wrap.
     // GL_LINEAR_MIPMAP_LINEAR: Trilinear interpolation
@@ -42,26 +45,27 @@ std::unique_ptr<Texture> Texture::create(const Image &image) {
     return std::move(texture);
 }
 
-std::unique_ptr<Texture> Texture::create(int width, int height, uint32_t format) {
+std::unique_ptr<Texture> Texture::create(int width, int height, uint32_t format, uint32_t type) {
     uint32_t texture_id;
     glGenTextures(1, &texture_id);
     if (const auto error = glGetError(); error != GL_NO_ERROR) {
         SPDLOG_ERROR("Failed to create texture: {}", error);
         return nullptr;
     }
-    auto texture = std::unique_ptr<Texture>{new Texture{texture_id, width, height, format}};
+    auto texture = std::unique_ptr<Texture>{new Texture{texture_id, width, height, format, type}};
     texture->bind();
     texture->set_filter(GL_LINEAR, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, type, nullptr);
     SPDLOG_INFO("Texture has been created: {}", texture_id);
     return texture;
 }
 
-Texture::Texture(uint32_t texture_id, int width, int height, uint32_t format)
+Texture::Texture(uint32_t texture_id, int width, int height, uint32_t format, uint32_t type)
     : texture_{texture_id}
     , width_{width}
     , height_{height}
-    , format_{format} {}
+    , format_{format}
+    , type_{type} {}
 
 Texture::~Texture() {
     if (texture_) {
@@ -91,6 +95,10 @@ void Texture::set_filter(const int32_t min_filter, const int32_t mag_filter) con
 void Texture::set_wrap(const int32_t s_wrap, const int32_t t_wrap) const {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, s_wrap);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, t_wrap);
+}
+
+void Texture::set_border_color(const glm::vec4 &color) const {
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(color));
 }
 
 std::unique_ptr<CubeTexture>

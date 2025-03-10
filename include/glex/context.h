@@ -3,10 +3,9 @@
 
 
 #include <memory>
-#include <vector>
-#include "glex/framebuffer.h"
 #include "glex/mesh.h"
 #include "glex/program.h"
+#include "glex/shadow_map.h"
 
 /// # Context
 ///
@@ -15,6 +14,7 @@ class Context {
     struct Light {
         glm::vec3 position;
         float distance;
+        bool directional;
         glm::vec3 direction;
         glm::vec2 cutoff; // inner cutoff angle, outer offset angle
         glm::vec3 ambient;
@@ -24,7 +24,7 @@ class Context {
 
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_, texture_program_, postprocess_program_, skybox_program_,
-            env_map_program_, grass_program_;
+            env_map_program_, grass_program_, lighting_shadow_program_;
     /// The mesh object used for rendering vertices.
     std::shared_ptr<Mesh> cube_mesh_, plain_mesh_;
 
@@ -34,9 +34,7 @@ class Context {
     std::shared_ptr<Material> floor_material_, cube_material1_, cube_material2_, window_material_, grass_material_;
     std::unique_ptr<CubeTexture> cube_texture_;
 
-    std::unique_ptr<FrameBuffer> framebuffer_;
-
-    std::vector<glm::vec3> grass_pos_;
+    std::unique_ptr<ShadowMap> shadow_map_;
 
     ///@{
     /// Default parameters
@@ -48,10 +46,22 @@ class Context {
     static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
 
     static constexpr Light LIGHT{
-            {0.0f, 3.5f, 4.0f}, 100.0f, {0.0f, -1.3f, -1.0f}, {35.0f, 5.0f}, {0.1f, 0.1f, 0.1f}, {0.5f, 0.5f, 0.5f},
+            {2.0f, 4.0f, 4.0f},
+            150.0f,
+            false,
+            {-0.5f, -1.5f, -1.0f},
+            {50.0f, 5.0f},
+            {0.1f, 0.1f, 0.1f},
+            {0.5f, 0.5f, 0.5f},
             {1.0f, 1.0f, 1.0f},
     };
     ///@}
+
+    /// Lighting parameters
+    Light light_ = LIGHT;
+    bool blinn_ = true;
+    float gamma_{1.0f};
+    bool flash_light_mode_{false};
 
     ///@{
     /// Camera parameters
@@ -66,6 +76,8 @@ class Context {
     glm::vec2 prev_mouse_pos_{0.0f}; ///< Previous mouse position
     ///@}
 
+    /// Window width and height
+    int width_{WINDOW_WIDTH}, height_{WINDOW_HEIGHT};
     /// Aspect ratio of window
     float aspect_ratio_{static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT)};
 
@@ -73,12 +85,6 @@ class Context {
     float scale_{0.2};
 
     bool animation_{true};
-    bool flash_light_mode_{false};
-
-    /// Lighting parameters
-    Light light_ = LIGHT;
-    bool blinn_ = false;
-    float gamma_{1.0f};
 
 public:
     /// ## Context::create
@@ -92,6 +98,10 @@ public:
     ///
     /// Renders the scene using the current OpenGL context.
     void render();
+
+    void draw_ui();
+
+    void draw_scene(const glm::mat4 &view, const glm::mat4 &projection, const Program &program);
 
     /// ## Context::process_input
     ///

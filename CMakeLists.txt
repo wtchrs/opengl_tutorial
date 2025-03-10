@@ -34,6 +34,7 @@ file(GLOB_RECURSE SOURCES
     src/model.cpp
     src/program.cpp
     src/shader.cpp
+    src/shadow_map.cpp
     src/texture.cpp
     src/vertex_layout.cpp
 )

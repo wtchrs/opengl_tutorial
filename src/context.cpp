@@ -1,19 +1,29 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
-#include <cstddef>
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
 #include <imgui.h>
 #include <memory>
-#include <random>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
+#include "glex/framebuffer.h"
 #include "glex/image.h"
 #include "glex/mesh.h"
 #include "glex/texture.h"
-#include "glex/vertex_layout.h"
+
+// TODO: Extract to separate files and add some useful functions.
+struct Object {
+    glm::vec3 pos;
+    glm::vec3 scale;
+    glm::vec3 rotDir;
+    float rotAngle;
+    std::shared_ptr<Mesh> mesh;
+    std::shared_ptr<Material> material;
+    bool outline;
+};
 
 std::unique_ptr<Context> Context::create() {
     auto context = std::unique_ptr<Context>{new Context{}};
@@ -30,34 +40,7 @@ bool Context::init() {
     cube_mesh_ = Mesh::create_cube();
     plain_mesh_ = Mesh::create_plain();
 
-    // Generate grass position randomly.
-    std::random_device rd;
-    std::mt19937 gen{rd()};
-    std::uniform_real_distribution<float> dis_xz{-5.0f, 5.0f}; // xz values for position
-    std::uniform_real_distribution<float> dis_y{0.0f, 360.0f}; // y values for rotation
-    constexpr size_t NUM_GRASS = 10000;
-    grass_pos_.reserve(NUM_GRASS);
-    for (size_t i = 0; i < NUM_GRASS; ++i) {
-        grass_pos_.emplace_back(dis_xz(gen), dis_y(gen), dis_xz(gen));
-    }
-
-    // Instancing
-    grass_instance_ = VertexLayout::create();
-    grass_instance_->bind();
-    // Set vertex-wise attributes.
-    plain_mesh_->get_vertex_buffer()->bind();
-    grass_instance_->set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    grass_instance_->set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
-    grass_instance_->set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tex_coord));
-    // Set instance-wise attributes.
-    grass_pos_buffer_ = Buffer::create_with_data(
-            GL_ARRAY_BUFFER, GL_STATIC_DRAW, grass_pos_.data(), sizeof(glm::vec3), grass_pos_.size()
-    );
-    grass_pos_buffer_->bind();
-    grass_instance_->set_attrib(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
-    glVertexAttribDivisor(3, 1); // Set attribute at index '3' to update once per '1' instance.
-    // Index buffer
-    plain_mesh_->get_index_buffer()->bind();
+    shadow_map_ = ShadowMap::create(1024, 1024);
 
     // Load programs.
     program_ = Program::create("./shader/lighting.vs", "./shader/lighting.fs");
@@ -67,6 +50,7 @@ bool Context::init() {
     skybox_program_ = Program::create("./shader/skybox.vs", "./shader/skybox.fs");
     env_map_program_ = Program::create("./shader/env_map.vs", "./shader/env_map.fs");
     grass_program_ = Program::create("./shader/grass.vs", "./shader/grass.fs");
+    lighting_shadow_program_ = Program::create("./shader/lighting_shadow.vs", "./shader/lighting_shadow.fs");
 
     if (!program_ || !simple_program_ || !texture_program_ || !postprocess_program_ || !skybox_program_ ||
         !env_map_program_ || !grass_program_) {
@@ -113,7 +97,7 @@ bool Context::init() {
              *Image::load("./image/skybox/front.jpg", false), *Image::load("./image/skybox/back.jpg", false)}
     );
 
-    // Enable depth test.
+    // Enable depth test and cull face.
     glEnable(GL_DEPTH_TEST);
 
     // Set clear color.
@@ -133,6 +117,119 @@ static glm::mat4 get_view_transform(const glm::vec3 &position, const glm::vec3 &
 }
 
 void Context::render() {
+    // Clear color buffer with `glClearColor` and depth buffer with 1.0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // Dear ImGui UI
+    draw_ui();
+
+    // For shadow map.
+    shadow_map_->bind();
+    const auto light_projection =
+            light_.directional
+                    ? glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f)
+                    : glm::perspective(glm::radians((light_.cutoff[0] + light_.cutoff[1]) * 2.0f), 1.0f, 0.1f, 100.0f);
+    const auto light_view =
+            glm::lookAt(light_.position, light_.position + light_.direction, glm::vec3{0.0f, 1.0f, 0.0f});
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, shadow_map_->get_shadow_map()->get_width(), shadow_map_->get_shadow_map()->get_height());
+    simple_program_->use();
+    // Any color is fine because only depth map is needed.
+    simple_program_->set_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
+    glCullFace(GL_FRONT);
+    draw_scene(light_view, light_projection, *simple_program_);
+    glCullFace(GL_BACK);
+
+    // Reset to default frame buffer.
+    FrameBuffer::bind_to_default();
+    glViewport(0, 0, width_, height_);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // Calculate camera front direction.
+    camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
+                    glm::rotate(glm::mat4{1.0f}, glm::radians(camera_pitch_), glm::vec3{1.0f, 0.0f, 0.0f}) *
+                    glm::vec4{0.0f, 0.0f, -1.0f, 0.0f};
+
+    // Projection and view matrix
+    // When the `Near` value is too small, inaccurate depth test, known as "z-fighting", arise on far objects,
+    // due to the z-value distortion introduced by the projection transform.
+    const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.1f, 100.0f);
+    const auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
+
+    // Draw skybox using **cube texture**.
+    glDisable(GL_CULL_FACE);
+    auto skybox_model_transform =
+            glm::translate(glm::mat4{1.0f}, camera_pos_) * glm::scale(glm::mat4{1.0f}, glm::vec3{50.0f});
+    skybox_program_->use();
+    cube_texture_->bind();
+    skybox_program_->set_uniform("skybox", 0);
+    skybox_program_->set_uniform("transform", projection * view * skybox_model_transform);
+    cube_mesh_->draw(*skybox_program_);
+    glEnable(GL_CULL_FACE);
+
+    auto light_pos = light_.position;
+    auto light_dir = light_.direction;
+    if (flash_light_mode_) {
+        light_pos = camera_pos_;
+        light_dir = camera_front_;
+    } else {
+        // Draw one cube with simple_program_ for indicating the light position.
+        const auto light_model =
+                glm::translate(glm::mat4{1.0f}, light_pos) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
+        simple_program_->use();
+        simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 1.0f});
+        simple_program_->set_uniform("transform", projection * view * light_model);
+        cube_mesh_->draw(*simple_program_);
+    }
+
+    const auto &program = *lighting_shadow_program_;
+
+    // Set lighting.
+    program.use();
+    program.set_uniform("viewPos", camera_pos_);
+    program.set_uniform("light.position", light_pos);
+    program.set_uniform("light.directional", light_.directional);
+    program.set_uniform("light.direction", light_dir);
+    program.set_uniform("light.attenuation", get_attenuation_coefficient(light_.distance));
+    program.set_uniform(
+            "light.cutoff", glm::cos(glm::radians(glm::vec2{light_.cutoff.x, light_.cutoff.x + light_.cutoff.y}))
+    );
+    program.set_uniform("light.ambient", light_.ambient);
+    program.set_uniform("light.diffuse", light_.diffuse);
+    program.set_uniform("light.specular", light_.specular);
+    program.set_uniform("blinn", blinn_);
+    // shadow
+    program.set_uniform("lightTransform", light_projection * light_view);
+    glActiveTexture(GL_TEXTURE3);
+    shadow_map_->get_shadow_map()->bind();
+    program.set_uniform("shadowMap", 3);
+
+    draw_scene(view, projection, *lighting_shadow_program_);
+}
+
+void Context::draw_scene(const glm::mat4 &view, const glm::mat4 &projection, const Program &program) {
+    Object cubes[] = {
+            {{0.0f, -0.5f, 0.0f}, {40.0f, 1.0f, 40.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, cube_mesh_, floor_material_, false},
+            {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_mesh_, cube_material1_, false},
+            {{0.0f, 0.75f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_mesh_, cube_material2_, false},
+            {{3.0f, 1.75f, -2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 50.0f, cube_mesh_, cube_material2_, false},
+    };
+
+    program.use();
+
+    for (const auto &[pos, scale, rot_dir, angle, mesh, material, outline] : cubes) {
+        auto model_transform = glm::translate(glm::mat4{1.0f}, pos) * glm::scale(glm::mat4{1.0f}, scale) *
+                               glm::rotate(glm::mat4{1.0f}, glm::radians(angle), rot_dir);
+        auto transform = projection * view * model_transform;
+        program.set_uniform("transform", transform);
+        program.set_uniform("modelTransform", model_transform);
+        material->set_to_program(program);
+        mesh->draw(program);
+    }
+}
+
+void Context::draw_ui() {
     // ImGui Components.
     if (ImGui::Begin("UI")) {
         if (ImGui::ColorEdit4("Clear color", glm::value_ptr(clear_color_))) {
@@ -149,8 +246,11 @@ void Context::render() {
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Light");
             ImGui::Checkbox("Flash light mode", &flash_light_mode_);
-            if (!flash_light_mode_) {
+            ImGui::Checkbox("Directional light mode", &light_.directional);
+            if (!flash_light_mode_ || !light_.directional) {
                 ImGui::DragFloat3("l.position", glm::value_ptr(light_.position), 0.01f);
+            }
+            if (!flash_light_mode_) {
                 ImGui::DragFloat3("l.direction", glm::value_ptr(light_.direction), 0.01f);
             }
             ImGui::DragFloat("l.distance(attenuation)", &light_.distance, 0.5f, 0.0f, 3000.0f);
@@ -171,200 +271,11 @@ void Context::render() {
             camera_pitch_ = CAMERA_PITCH;
             light_ = LIGHT;
         }
-
-        ImGui::Image(framebuffer_->get_color_attachment()->get(), ImVec2{150 * aspect_ratio_, 150});
+        ImGui::Separator();
+        ImGui::Text("Shadow Map");
+        ImGui::Image(shadow_map_->get_shadow_map()->get(), ImVec2{256, 256}, ImVec2{0, 1}, ImVec2{1, 0});
     }
     ImGui::End();
-
-    // Bind framebuffer before clear buffers to draw at the framebuffer.
-    framebuffer_->bind();
-
-    // Clear color buffer with `glClearColor` and depth buffer with 1.0.
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    // Calculate camera front direction.
-    camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
-                    glm::rotate(glm::mat4{1.0f}, glm::radians(camera_pitch_), glm::vec3{1.0f, 0.0f, 0.0f}) *
-                    glm::vec4{0.0f, 0.0f, -1.0f, 0.0f};
-
-    // Projection and view matrix
-
-    // When the `Near` value is too small, inaccurate depth test, known as "z-fighting", arise on far objects,
-    // due to the z-value distortion introduced by the projection transform.
-    /* const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.01f, 30.0f); */
-    const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.1f, 100.0f);
-
-    const auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
-
-    // Draw skybox using **cube texture**.
-    auto skybox_model_transform =
-            glm::translate(glm::mat4{1.0f}, camera_pos_) * glm::scale(glm::mat4{1.0f}, glm::vec3{50.0f});
-    skybox_program_->use();
-    cube_texture_->bind();
-    skybox_program_->set_uniform("skybox", 0);
-    skybox_program_->set_uniform("transform", projection * view * skybox_model_transform);
-    cube_mesh_->draw(*skybox_program_);
-
-    // Draw a cube with mirrored surface using **environment map**.
-    /*
-    auto env_map_cube_model = glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, 0.75f, -2.0f}) *
-                              glm::rotate(glm::mat4{1.0f}, glm::radians(40.0f), glm::vec3{0.0f, 1.0f, 0.0f}) *
-                              glm::scale(glm::mat4{1.0f}, glm::vec3{1.5f});
-    env_map_program_->use();
-    env_map_program_->set_uniform("projection", projection);
-    env_map_program_->set_uniform("view", view);
-    env_map_program_->set_uniform("model", env_map_cube_model);
-    env_map_program_->set_uniform("cameraPos", camera_pos_);
-    cube_texture_->bind();
-    env_map_program_->set_uniform("skybox", 0);
-    cube_mesh_->draw(*env_map_program_);
-    */
-
-    auto light_pos = light_.position;
-    auto light_dir = light_.direction;
-    if (flash_light_mode_) {
-        light_pos = camera_pos_;
-        light_dir = camera_front_;
-    } else {
-        // Draw one cube with simple_program_ for indicating the light position.
-        const auto light_model =
-                glm::translate(glm::mat4{1.0f}, light_pos) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
-        simple_program_->use();
-        simple_program_->set_uniform("color", glm::vec4{light_.ambient + light_.diffuse, 1.0f});
-        simple_program_->set_uniform("transform", projection * view * light_model);
-        cube_mesh_->draw(*simple_program_);
-    }
-
-    // Set lighting.
-    program_->use();
-    program_->set_uniform("viewPos", camera_pos_);
-    program_->set_uniform("light.position", light_pos);
-    program_->set_uniform("light.direction", light_dir);
-    program_->set_uniform("light.attenuation", get_attenuation_coefficient(light_.distance));
-    program_->set_uniform(
-            "light.cutoff", glm::cos(glm::radians(glm::vec2{light_.cutoff.x, light_.cutoff.x + light_.cutoff.y}))
-    );
-    program_->set_uniform("light.ambient", light_.ambient);
-    program_->set_uniform("light.diffuse", light_.diffuse);
-    program_->set_uniform("light.specular", light_.specular);
-    program_->set_uniform("blinn", blinn_);
-
-    // TODO: Extract to separate files and add some useful functions.
-    struct Object {
-        glm::vec3 pos;
-        glm::vec3 scale;
-        glm::vec3 rotDir;
-        float rotAngle;
-        std::shared_ptr<Mesh> mesh;
-        std::shared_ptr<Material> material;
-        bool outline;
-    };
-
-    Object cubes[] = {
-            {{0.0f, -0.5f, 0.0f}, {10.0f, 1.0f, 10.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, cube_mesh_, floor_material_, false},
-            {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_mesh_, cube_material1_, false},
-            {{0.0f, 0.75f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_mesh_, cube_material2_, true},
-    };
-
-    glEnable(GL_CULL_FACE);
-
-    for (const auto &[pos, scale, rotDir, rotAngle, mesh, material, outline] : cubes) {
-        if (outline) {
-            // Set to mark stencil buffer that object is drawn.
-            glEnable(GL_STENCIL_TEST);
-            glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
-            glStencilFunc(GL_ALWAYS, 1, 0xff);
-            glStencilMask(0xff);
-        }
-
-        // Draw object.
-        auto model_transform = glm::translate(glm::mat4{1.0f}, pos) * glm::rotate(glm::mat4{1.0f}, rotAngle, rotDir) *
-                               glm::scale(glm::mat4{1.0f}, scale);
-        auto transform = projection * view * model_transform;
-        program_->set_uniform("transform", transform);
-        program_->set_uniform("modelTransform", model_transform);
-        material->set_to_program(*program_);
-        mesh->draw(*program_);
-
-        if (outline) {
-            // Set to allow to draw only the position that are not marked in stencil buffer.
-            glStencilFunc(GL_NOTEQUAL, 1, 0xff);
-            glStencilMask(0x00);
-            glDisable(GL_DEPTH_TEST);
-
-            // Draw outline using stencil buffer.
-            simple_program_->use();
-            simple_program_->set_uniform("color", glm::vec4{1.0f, 1.0f, 0.5f, 1.0f});
-            auto outline_transform = transform * glm::scale(glm::mat4{1.0f}, glm::vec3{1.05f, 1.05f, 1.05f});
-            simple_program_->set_uniform("transform", outline_transform);
-            mesh->draw(*simple_program_);
-
-            // Restore settings.
-            glEnable(GL_DEPTH_TEST);
-            glDisable(GL_STENCIL_TEST);
-            glStencilFunc(GL_ALWAYS, 1, 0xff);
-            glStencilMask(0xff);
-        }
-    }
-
-    Object windows[] = {
-            {{0.0f, 0.5f, 4.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_mesh_, window_material_, false},
-            {{0.2f, 0.5f, 5.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_mesh_, window_material_, false},
-            {{0.4f, 0.5f, 6.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, plain_mesh_, window_material_, false},
-    };
-
-    // Enable blend to draw transparent window
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // To show both sides of face.
-    glDisable(GL_CULL_FACE);
-
-    for (auto &[pos, scale, rotDir, rotAngle, mesh, material, outline] : windows) {
-        texture_program_->use();
-        material->diffuse_->bind_to_unit(0);
-        texture_program_->set_uniform("tex", 0);
-
-        // Draw window.
-        auto model_transform = glm::translate(glm::mat4{1.0f}, pos) * glm::rotate(glm::mat4{1.0f}, rotAngle, rotDir) *
-                               glm::scale(glm::mat4{1.0f}, scale);
-        auto transform = projection * view * model_transform;
-        texture_program_->set_uniform("transform", transform);
-        mesh->draw(*texture_program_);
-
-        // You can see the windows properly if rendered in order of the farthest windows,
-        // But if the nearer window is rendered first, windows behind it are not rendered because of the depth test.
-        // For avoiding it, you can consider ordered transparency (sorting transparent objects before rendering),
-        // or applying order-independent transparency.
-        // See more: https://learnopengl.com/Guest-Articles/2020/OIT/Introduction
-    }
-
-    // Draw grasses using **instancing**.
-    /*
-    grass_program_->use();
-    grass_material_->diffuse_->bind_to_unit(0);
-    grass_program_->set_uniform("tex", 0);
-    grass_instance_->bind();
-    auto model_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.5f, 0.0f});
-    auto transform = projection * view * model_transform;
-    grass_program_->set_uniform("transform", transform);
-    glDrawElementsInstanced(
-            GL_TRIANGLES, plain_mesh_->get_index_buffer()->get_count(), GL_UNSIGNED_INT, 0,
-            grass_pos_buffer_->get_count()
-    );
-    */
-
-    // Draw framebuffer content to default frame using **postprocessing shader program**.
-
-    FrameBuffer::bind_to_default();
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    postprocess_program_->use();
-    postprocess_program_->set_uniform("transform", glm::scale(glm::mat4{1.0f}, glm::vec3{2.0f, 2.0f, 1.0f}));
-    framebuffer_->get_color_attachment()->bind();
-    postprocess_program_->set_uniform("tex", 0);
-    postprocess_program_->set_uniform("gamma", gamma_);
-    plain_mesh_->draw(*postprocess_program_);
 }
 
 void Context::process_input(GLFWwindow *window) {
@@ -393,8 +304,9 @@ void Context::process_input(GLFWwindow *window) {
 }
 
 void Context::reshape(const int width, const int height) {
+    width_ = width;
+    height_ = height;
     aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
-    framebuffer_ = FrameBuffer::create(Texture::create(width, height, GL_RGBA));
 }
 
 void Context::mouse_move(const double x, const double y) {

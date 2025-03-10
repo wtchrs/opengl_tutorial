@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include "glex/common.h"
 #include "glex/image.h"
 
 /// # Texture
@@ -49,6 +50,7 @@ class Texture {
 
     const int width_, height_;
     const uint32_t format_;
+    const uint32_t type_;
 
 public:
     /// ## Texture::create
@@ -68,7 +70,7 @@ public:
     /// This Texture object has `GL_LINEAR` min and mag filters, and `GL_CLAMP_TO_EDGE` wrap modes as default.
     ///
     /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
-    static std::unique_ptr<Texture> create(int width, int height, uint32_t format);
+    static std::unique_ptr<Texture> create(int width, int height, uint32_t format, uint32_t type = GL_UNSIGNED_BYTE);
 
     /// ## Texture::~Texture
     ///
@@ -103,8 +105,16 @@ public:
     ///
     /// @returns format of texture.
     [[nodiscard]]
-    int get_format() const {
+    uint32_t get_format() const {
         return format_;
+    }
+
+    /// ## Texture::get_type
+    ///
+    /// @returns pixel type of texture.
+    [[nodiscard]]
+    uint32_t get_type() const {
+        return type_;
     }
 
     /// ## Texture::bind
@@ -139,8 +149,10 @@ public:
     /// @param t_wrap: The wrapping mode for texture coordinate `t`.
     void set_wrap(int32_t s_wrap, int32_t t_wrap) const;
 
+    void set_border_color(const glm::vec4 &color) const;
+
 private:
-    Texture(uint32_t texture_id, int width, int height, uint32_t format);
+    Texture(uint32_t texture_id, int width, int height, uint32_t format, uint32_t type);
 };
 
 
