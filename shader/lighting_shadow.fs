@@ -40,11 +40,21 @@ float computeShadow(vec4 fragPosLight, vec3 normal, vec3 lightDir) {
     vec3 projCoord = fragPosLight.xyz / fragPosLight.w * 0.5 + 0.5;
     // float bias = max(0.0005, 0.005 * (1.0 - dot(normal, lightDir)));
     float bias = 0.0;
-    float closestDepth = texture2D(shadowMap, projCoord.xy).r + bias;
-    if (projCoord.z > closestDepth) {
-        return 1.0;
+    float currentDepth = projCoord.z;
+
+    // PCF (Percentage Closer Filtering)
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture2D(shadowMap, projCoord.xy + vec2(x, y) * texelSize * 1.5).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
     }
-    return 0.0;
+    return shadow / 9.0;
+
+    // float closestDepth = texture2D(shadowMap, projCoord.xy).r;
+    // return currentDepth - bias > closestDepth ? 1.0 : 0.0;
 }
 
 void main() {

@@ -15,7 +15,7 @@ std::unique_ptr<ShadowMap> ShadowMap::create(int width, int height) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         return nullptr;
     }
-    shadow_map->set_filter(GL_NEAREST, GL_NEAREST);
+    shadow_map->set_filter(GL_LINEAR, GL_LINEAR);
     shadow_map->set_wrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
     shadow_map->set_border_color(glm::vec4{1.0f});
 
