@@ -24,7 +24,7 @@ class Context {
 
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_, texture_program_, postprocess_program_, skybox_program_,
-            env_map_program_, grass_program_, lighting_shadow_program_;
+            env_map_program_, grass_program_, lighting_shadow_program_, normal_program_;
     /// The mesh object used for rendering vertices.
     std::shared_ptr<Mesh> cube_mesh_, plain_mesh_;
 
@@ -35,6 +35,8 @@ class Context {
     std::unique_ptr<CubeTexture> cube_texture_;
 
     std::unique_ptr<ShadowMap> shadow_map_;
+
+    std::unique_ptr<Texture> brick_diffuse_texture_, brick_normal_texture_;
 
     ///@{
     /// Default parameters

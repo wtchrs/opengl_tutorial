@@ -15,11 +15,13 @@
 /// A structure that represents a single vertex in a mesh.
 struct Vertex {
     /// Position
-    glm::vec3 position;
+    const glm::vec3 position;
     /// Normal vector
-    glm::vec3 normal;
+    const glm::vec3 normal;
     /// Texture coordinate
-    glm::vec2 tex_coord;
+    const glm::vec2 tex_coord;
+    /// Tangent vector
+    glm::vec3 tangent;
 
     /// ## Vertex::Vertex
     ///
@@ -28,10 +30,33 @@ struct Vertex {
     /// @param position: The position of the vertex.
     /// @param normal: The normal vector of the vertex.
     /// @param tex_coord: The texture coordinate of the vertex.
-    constexpr Vertex(const glm::vec3 position, const glm::vec3 normal, const glm::vec2 tex_coord)
+    /// @param tangent: The tangent vector of the vertex.
+    constexpr Vertex(
+            const glm::vec3 position, const glm::vec3 normal, const glm::vec2 tex_coord,
+            const glm::vec3 tangent = glm::vec3{0.0f}
+    )
         : position{position}
         , normal{normal}
-        , tex_coord{tex_coord} {}
+        , tex_coord{tex_coord}
+        , tangent{tangent} {}
+
+    // ## Vertex::compute_tangent
+    //
+    // Computes and returns the tangent vector using given local coordinates and texture coordinates of three positions.
+    // Each coordinates consists of three floats that represents x, y, and z-axises.
+    //
+    // @param coord1: The local coordinates of position 1.
+    // @param coord2: The local coordinates of position 2.
+    // @param coord3: The local coordinates of position 3.
+    // @param uv1: The texture coordinates of position 1.
+    // @param uv2: The texture coordinates of position 2.
+    // @param uv3: The texture coordinates of position 3.
+    //
+    // @returns the tangent vector.
+    static glm::vec3 compute_tangent(
+            const glm::vec3 &coord1, const glm::vec3 &coord2, const glm::vec3 &coord3, const glm::vec2 &uv1,
+            const glm::vec2 &uv2, const glm::vec2 &uv3
+    );
 };
 
 /// # Material
@@ -96,7 +121,7 @@ public:
     ///
     /// @returns `Mesh` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
     static std::unique_ptr<Mesh>
-    create(const Vertex *vertices, size_t vertices_size, const uint32_t *indices, size_t indices_size,
+    create(Vertex *vertices, size_t vertices_size, const uint32_t *indices, size_t indices_size,
            uint32_t primitive_type);
 
     /// ## Mesh::create
@@ -109,7 +134,7 @@ public:
     ///
     /// @returns `Mesh` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
     static std::unique_ptr<Mesh>
-    create(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, uint32_t primitive_type);
+    create(std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, uint32_t primitive_type);
 
     /// ## Mesh::create_cube
     ///

@@ -51,9 +51,10 @@ bool Context::init() {
     env_map_program_ = Program::create("./shader/env_map.vs", "./shader/env_map.fs");
     grass_program_ = Program::create("./shader/grass.vs", "./shader/grass.fs");
     lighting_shadow_program_ = Program::create("./shader/lighting_shadow.vs", "./shader/lighting_shadow.fs");
+    normal_program_ = Program::create("./shader/normal.vs", "./shader/normal.fs");
 
     if (!program_ || !simple_program_ || !texture_program_ || !postprocess_program_ || !skybox_program_ ||
-        !env_map_program_ || !grass_program_) {
+        !env_map_program_ || !grass_program_ || !lighting_shadow_program_ || !normal_program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -96,6 +97,10 @@ bool Context::init() {
              *Image::load("./image/skybox/top.jpg", false), *Image::load("./image/skybox/bottom.jpg", false),
              *Image::load("./image/skybox/front.jpg", false), *Image::load("./image/skybox/back.jpg", false)}
     );
+
+    // Load the diffuse and normal maps of the brick.
+    brick_diffuse_texture_ = Texture::create(*Image::load("./image/brickwall.jpg"));
+    brick_normal_texture_ = Texture::create(*Image::load("./image/brickwall_normal.jpg"));
 
     // Enable depth test and cull face.
     glEnable(GL_DEPTH_TEST);
@@ -184,6 +189,21 @@ void Context::render() {
     }
 
     const auto &program = *lighting_shadow_program_;
+
+    // Normal map testing.
+    auto modelTransform = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 3.0f, 0.0f}) *
+                          glm::rotate(glm::mat4{1.0f}, glm::radians(-90.0f), glm::vec3{1.0f, 0.0f, 0.0f});
+    normal_program_->use();
+    normal_program_->set_uniform("viewPos", camera_pos_);
+    normal_program_->set_uniform("lightPos", light_.position);
+    normal_program_->set_uniform("blinn", blinn_);
+    brick_diffuse_texture_->bind_to_unit(0);
+    normal_program_->set_uniform("diffuse", 0);
+    brick_normal_texture_->bind_to_unit(1);
+    normal_program_->set_uniform("normalMap", 1);
+    normal_program_->set_uniform("transform", projection * view * modelTransform);
+    normal_program_->set_uniform("modelTransform", modelTransform);
+    plain_mesh_->draw(*normal_program_);
 
     // Set lighting.
     program.use();
