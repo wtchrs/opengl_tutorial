@@ -2,6 +2,7 @@
 #define __FRAMEBUFFER_H__
 
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include "glex/texture.h"
@@ -15,17 +16,17 @@ class FrameBuffer {
     /// OpenGL renderbuffer ID for depth and stencil buffer
     const uint32_t depth_stencil_buffer_;
     /// Color attachment texture
-    const std::shared_ptr<Texture> color_attachment_;
+    const std::vector<std::shared_ptr<Texture>> color_attachments_;
 
 public:
     /// ## FrameBuffer::create
     ///
     /// Creates and initializes a new `FrameBuffer` object with the given color attachment texture.
     ///
-    /// @param color_attachment: Shared pointer to the color attachment texture.
+    /// @param color_attachments: Vector of shared pointers to the color attachment textures.
     ///
     /// @returns `FrameBuffer` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
-    static std::unique_ptr<FrameBuffer> create(std::shared_ptr<Texture> color_attachment);
+    static std::unique_ptr<FrameBuffer> create(const std::vector<std::shared_ptr<Texture>> &color_attachments);
 
     /// ## FrameBuffer::bind_to_default
     ///
@@ -50,22 +51,32 @@ public:
     /// Binds the framebuffer to the OpenGL context.
     void bind() const;
 
+    /// ## FrameBuffer::get_color_attachments_size
+    ///
+    /// @returns The number of color attachment textures.
+    [[nodiscard]]
+    size_t get_color_attachments_size() const {
+        return color_attachments_.size();
+    }
+
     /// ## FrameBuffer::get_color_attachment
     ///
-    /// @returns Shared pointer to the color attachment texture.
+    /// @param index: Index to get.
+    ///
+    /// @returns Shared pointer to the color attachment texture from color attachment vector.
     [[nodiscard]]
-    std::shared_ptr<Texture> get_color_attachment() const {
-        return color_attachment_;
+    std::shared_ptr<Texture> get_color_attachment(int index = 0) const {
+        return color_attachments_[index];
     }
 
 private:
     FrameBuffer(
             const uint32_t framebuffer_id, const uint32_t depth_stencil_buffer,
-            const std::shared_ptr<Texture> &color_attachment
+            const std::vector<std::shared_ptr<Texture>> &color_attachments
     )
         : framebuffer_{framebuffer_id}
         , depth_stencil_buffer_{depth_stencil_buffer}
-        , color_attachment_{color_attachment} {}
+        , color_attachments_{color_attachments} {}
 
     /// ## FrameBuffer::init
     ///

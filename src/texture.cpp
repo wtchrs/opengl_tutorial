@@ -55,7 +55,13 @@ std::unique_ptr<Texture> Texture::create(int width, int height, uint32_t format,
     auto texture = std::unique_ptr<Texture>{new Texture{texture_id, width, height, format, type}};
     texture->bind();
     texture->set_filter(GL_LINEAR, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, type, nullptr);
+    GLenum image_format = GL_RGBA;
+    if (format == GL_DEPTH_COMPONENT) {
+        image_format = GL_DEPTH_COMPONENT;
+    } else if (format == GL_RGB || format == GL_RGB16F || format == GL_RGB32F) {
+        image_format = GL_RGB;
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, image_format, type, nullptr);
     SPDLOG_INFO("Texture has been created: {}", texture_id);
     return texture;
 }

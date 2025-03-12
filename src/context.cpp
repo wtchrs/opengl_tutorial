@@ -1,5 +1,6 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
+#include <cstddef>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
@@ -7,6 +8,7 @@
 #include <glm/trigonometric.hpp>
 #include <imgui.h>
 #include <memory>
+#include <random>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
 #include "glex/framebuffer.h"
@@ -52,9 +54,12 @@ bool Context::init() {
     grass_program_ = Program::create("./shader/grass.vs", "./shader/grass.fs");
     lighting_shadow_program_ = Program::create("./shader/lighting_shadow.vs", "./shader/lighting_shadow.fs");
     normal_program_ = Program::create("./shader/normal.vs", "./shader/normal.fs");
+    deferred_geo_program_ = Program::create("./shader/defer_geo.vs", "./shader/defer_geo.fs");
+    deferred_light_program_ = Program::create("./shader/defer_light.vs", "./shader/defer_light.fs");
 
     if (!program_ || !simple_program_ || !texture_program_ || !postprocess_program_ || !skybox_program_ ||
-        !env_map_program_ || !grass_program_ || !lighting_shadow_program_ || !normal_program_) {
+        !env_map_program_ || !grass_program_ || !lighting_shadow_program_ || !normal_program_ ||
+        !deferred_geo_program_ || !deferred_light_program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -102,6 +107,16 @@ bool Context::init() {
     brick_diffuse_texture_ = Texture::create(*Image::load("./image/brickwall.jpg"));
     brick_normal_texture_ = Texture::create(*Image::load("./image/brickwall_normal.jpg"));
 
+    std::random_device rd;
+    std::mt19937 gen{rd()};
+    std::uniform_real_distribution<float> dis_xz{-10.0f, 10.0f};
+    std::uniform_real_distribution<float> dis_y{1.0f, 4.0f};
+    std::uniform_real_distribution<float> dis_color{0.05f, 0.3f};
+    for (auto &light : deferred_lights_) {
+        light.position = glm::vec3{dis_xz(gen), dis_y(gen), dis_xz(gen)};
+        light.color = glm::vec3{dis_color(gen), dis_color(gen), dis_color(gen)};
+    }
+
     // Enable depth test and cull face.
     glEnable(GL_DEPTH_TEST);
 
@@ -128,6 +143,17 @@ void Context::render() {
     // Dear ImGui UI
     draw_ui();
 
+    // Calculate camera front direction.
+    camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
+                    glm::rotate(glm::mat4{1.0f}, glm::radians(camera_pitch_), glm::vec3{1.0f, 0.0f, 0.0f}) *
+                    glm::vec4{0.0f, 0.0f, -1.0f, 0.0f};
+
+    // Projection and view matrix
+    // When the `Near` value is too small, inaccurate depth test, known as "z-fighting", arise on far objects,
+    // due to the z-value distortion introduced by the projection transform.
+    const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.1f, 100.0f);
+    const auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
+
     // For shadow map.
     shadow_map_->bind();
     const auto light_projection =
@@ -145,22 +171,56 @@ void Context::render() {
     draw_scene(light_view, light_projection, *simple_program_);
     glCullFace(GL_BACK);
 
-    // Reset to default frame buffer.
+    // Render first path.
+    geo_framebuffer_->bind();
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, width_, height_);
+    deferred_geo_program_->use();
+    draw_scene(view, projection, *deferred_geo_program_);
+
+    // Set to default framebuffer.
     FrameBuffer::bind_to_default();
     glViewport(0, 0, width_, height_);
-
+    glClearColor(clear_color_.r, clear_color_.g, clear_color_.b, clear_color_.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    // Calculate camera front direction.
-    camera_front_ = glm::rotate(glm::mat4{1.0f}, glm::radians(camera_yaw_), glm::vec3{0.0f, 1.0f, 0.0f}) *
-                    glm::rotate(glm::mat4{1.0f}, glm::radians(camera_pitch_), glm::vec3{1.0f, 0.0f, 0.0f}) *
-                    glm::vec4{0.0f, 0.0f, -1.0f, 0.0f};
+    // Render second path.
+    deferred_light_program_->use();
+    for (size_t i = 0; i < 3; ++i) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        geo_framebuffer_->get_color_attachment(i)->bind();
+    }
+    glActiveTexture(GL_TEXTURE0);
+    deferred_light_program_->set_uniform("gPosition", 0);
+    deferred_light_program_->set_uniform("gNormal", 1);
+    deferred_light_program_->set_uniform("gAlbedoSpec", 2);
+    for (size_t i = 0; i < deferred_lights_.size(); ++i) {
+        auto pos_name = std::format("lights[{}].position", i);
+        auto color_name = std::format("lights[{}].color", i);
+        deferred_light_program_->set_uniform(pos_name, deferred_lights_[i].position);
+        deferred_light_program_->set_uniform(color_name, deferred_lights_[i].color);
+    }
+    deferred_light_program_->set_uniform("transform", glm::scale(glm::mat4{1.0f}, glm::vec3{2.0f}));
+    plain_mesh_->draw(*deferred_light_program_);
 
-    // Projection and view matrix
-    // When the `Near` value is too small, inaccurate depth test, known as "z-fighting", arise on far objects,
-    // due to the z-value distortion introduced by the projection transform.
-    const auto projection = glm::perspective(glm::radians(45.0f), aspect_ratio_, 0.1f, 100.0f);
-    const auto view = glm::lookAt(camera_pos_, camera_pos_ + camera_front_, camera_up_);
+    // Copy depth buffer to the default framebuffer.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, geo_framebuffer_->get());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, width_, height_, 0, 0, width_, height_, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Draw cube for indicating light positions.
+    simple_program_->use();
+    for (const auto &light : deferred_lights_) {
+        const auto light_model =
+                glm::translate(glm::mat4{1.0f}, light.position) * glm::scale(glm::mat4{1.0}, glm::vec3{0.1f});
+        simple_program_->set_uniform("color", glm::vec4{light.color, 1.0f});
+        simple_program_->set_uniform("transform", projection * view * light_model);
+        cube_mesh_->draw(*simple_program_);
+    }
+
+    /*
 
     // Draw skybox using **cube texture**.
     glDisable(GL_CULL_FACE);
@@ -226,6 +286,8 @@ void Context::render() {
     program.set_uniform("shadowMap", 3);
 
     draw_scene(view, projection, *lighting_shadow_program_);
+
+    */
 }
 
 void Context::draw_scene(const glm::mat4 &view, const glm::mat4 &projection, const Program &program) {
@@ -296,6 +358,18 @@ void Context::draw_ui() {
         ImGui::Image(shadow_map_->get_shadow_map()->get(), ImVec2{256, 256}, ImVec2{0, 1}, ImVec2{1, 0});
     }
     ImGui::End();
+    if (ImGui::Begin("G-buffer")) {
+        const char *buffer_names[] = {"Position", "Normal", "Albedo/Specular"};
+        static int buffer_select = 0;
+        ImGui::Combo("buffer", &buffer_select, buffer_names, 3);
+        float width = ImGui::GetContentRegionAvail().x;
+        float height = width / aspect_ratio_;
+        auto selected_attachment = geo_framebuffer_->get_color_attachment(buffer_select);
+        ImGui::Image(
+                static_cast<ImTextureID>(selected_attachment->get()), ImVec2{width, height}, ImVec2{0, 1}, ImVec2{1, 0}
+        );
+    }
+    ImGui::End();
 }
 
 void Context::process_input(GLFWwindow *window) {
@@ -327,6 +401,11 @@ void Context::reshape(const int width, const int height) {
     width_ = width;
     height_ = height;
     aspect_ratio_ = static_cast<float>(width) / static_cast<float>(height);
+    geo_framebuffer_ = FrameBuffer::create({
+            Texture::create(width, height, GL_RGBA16F, GL_FLOAT),
+            Texture::create(width, height, GL_RGBA16F, GL_FLOAT),
+            Texture::create(width, height, GL_RGBA),
+    });
 }
 
 void Context::mouse_move(const double x, const double y) {

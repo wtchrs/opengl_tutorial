@@ -3,6 +3,7 @@
 
 
 #include <memory>
+#include "glex/framebuffer.h"
 #include "glex/mesh.h"
 #include "glex/program.h"
 #include "glex/shadow_map.h"
@@ -22,9 +23,18 @@ class Context {
         glm::vec3 specular;
     };
 
+    struct DeferLight {
+        glm::vec3 position;
+        glm::vec3 color;
+    };
+
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_, texture_program_, postprocess_program_, skybox_program_,
-            env_map_program_, grass_program_, lighting_shadow_program_, normal_program_;
+            env_map_program_, grass_program_, lighting_shadow_program_, normal_program_, deferred_geo_program_,
+            deferred_light_program_;
+
+    std::unique_ptr<FrameBuffer> geo_framebuffer_;
+
     /// The mesh object used for rendering vertices.
     std::shared_ptr<Mesh> cube_mesh_, plain_mesh_;
 
@@ -64,6 +74,7 @@ class Context {
     bool blinn_ = true;
     float gamma_{1.0f};
     bool flash_light_mode_{false};
+    std::vector<DeferLight> deferred_lights_{32};
 
     ///@{
     /// Camera parameters
