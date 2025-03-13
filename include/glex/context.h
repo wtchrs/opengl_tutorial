@@ -5,6 +5,7 @@
 #include <memory>
 #include "glex/framebuffer.h"
 #include "glex/mesh.h"
+#include "glex/model.h"
 #include "glex/program.h"
 #include "glex/shadow_map.h"
 
@@ -31,7 +32,7 @@ class Context {
     /// The shader programs used for rendering.
     std::unique_ptr<Program> program_, simple_program_, texture_program_, postprocess_program_, skybox_program_,
             env_map_program_, grass_program_, lighting_shadow_program_, normal_program_, deferred_geo_program_,
-            deferred_light_program_;
+            deferred_light_program_, ssao_program_, blur_program_;
 
     std::unique_ptr<FrameBuffer> geo_framebuffer_;
 
@@ -75,6 +76,16 @@ class Context {
     float gamma_{1.0f};
     bool flash_light_mode_{false};
     std::vector<DeferLight> deferred_lights_{32};
+
+    /// SSAO
+    std::unique_ptr<FrameBuffer> ssao_framebuffer_;
+    std::unique_ptr<Model> backpack_model_;
+    std::unique_ptr<Texture> ssao_noise_texture_;
+    std::vector<glm::vec3> ssao_samples_{16};
+    float ssao_radius_{1.0f};
+    float ssao_power_{1.0f};
+    std::unique_ptr<FrameBuffer> blur_framebuffer_;
+    bool use_ssao_{false};
 
     ///@{
     /// Camera parameters

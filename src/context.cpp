@@ -1,6 +1,7 @@
 #include "glex/context.h"
 #include <GLFW/glfw3.h>
 #include <cstddef>
+#include <format>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
@@ -42,6 +43,9 @@ bool Context::init() {
     cube_mesh_ = Mesh::create_cube();
     plain_mesh_ = Mesh::create_plain();
 
+    // Load model.
+    backpack_model_ = Model::load("./model/backpack/backpack.obj");
+
     shadow_map_ = ShadowMap::create(1024, 1024);
 
     // Load programs.
@@ -56,10 +60,12 @@ bool Context::init() {
     normal_program_ = Program::create("./shader/normal.vs", "./shader/normal.fs");
     deferred_geo_program_ = Program::create("./shader/defer_geo.vs", "./shader/defer_geo.fs");
     deferred_light_program_ = Program::create("./shader/defer_light.vs", "./shader/defer_light.fs");
+    ssao_program_ = Program::create("./shader/ssao.vs", "./shader/ssao.fs");
+    blur_program_ = Program::create("./shader/blur_5x5.vs", "./shader/blur_5x5.fs");
 
     if (!program_ || !simple_program_ || !texture_program_ || !postprocess_program_ || !skybox_program_ ||
         !env_map_program_ || !grass_program_ || !lighting_shadow_program_ || !normal_program_ ||
-        !deferred_geo_program_ || !deferred_light_program_) {
+        !deferred_geo_program_ || !deferred_light_program_ || !ssao_program_ || !blur_program_) {
         SPDLOG_ERROR("Failed to initialize context");
         return false;
     }
@@ -112,13 +118,39 @@ bool Context::init() {
     std::uniform_real_distribution<float> dis_xz{-10.0f, 10.0f};
     std::uniform_real_distribution<float> dis_y{1.0f, 4.0f};
     std::uniform_real_distribution<float> dis_color{0.05f, 0.3f};
-    for (auto &light : deferred_lights_) {
+    std::uniform_real_distribution<float> dis_neg_one_to_one{-1.0f, 1.0f};
+    std::uniform_real_distribution<float> dis_zero_to_one{0.0f, 1.0f};
+
+    for (size_t i = 0; i < deferred_lights_.size(); ++i) {
+        auto &light = deferred_lights_[i];
         light.position = glm::vec3{dis_xz(gen), dis_y(gen), dis_xz(gen)};
-        light.color = glm::vec3{dis_color(gen), dis_color(gen), dis_color(gen)};
+        light.color =
+                glm::vec3{i < 3 ? dis_color(gen) : 0.0f, i < 3 ? dis_color(gen) : 0.0f, i < 3 ? dis_color(gen) : 0.0f};
+    }
+
+    std::vector<glm::vec3> ssao_noise{16};
+    for (auto &noise : ssao_noise) {
+        noise = glm::vec3{dis_neg_one_to_one(gen), dis_neg_one_to_one(gen), 0.0f};
+    }
+    ssao_noise_texture_ = Texture::create(4, 4, GL_RGB16F, GL_FLOAT);
+    ssao_noise_texture_->bind();
+    ssao_noise_texture_->set_filter(GL_NEAREST, GL_NEAREST);
+    ssao_noise_texture_->set_wrap(GL_REPEAT, GL_REPEAT);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGB, GL_FLOAT, ssao_noise.data());
+
+    for (size_t i = 0; i < ssao_samples_.size(); ++i) {
+        auto sample = glm::vec3{dis_neg_one_to_one(gen), dis_neg_one_to_one(gen), dis_zero_to_one(gen)};
+        sample = glm::normalize(sample) * dis_zero_to_one(gen);
+        // Slightly shift to center.
+        float t = static_cast<float>(i) / static_cast<float>(ssao_samples_.size());
+        float t2 = t * t;
+        float scale = (1.0f - t2) * 0.1f + t2;
+        ssao_samples_[i] = sample * scale;
     }
 
     // Enable depth test and cull face.
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     // Set clear color.
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
@@ -176,8 +208,49 @@ void Context::render() {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, width_, height_);
-    deferred_geo_program_->use();
     draw_scene(view, projection, *deferred_geo_program_);
+
+    // SSAO path.
+    ssao_framebuffer_->bind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, width_, height_);
+    ssao_program_->use();
+    glActiveTexture(GL_TEXTURE0);
+    geo_framebuffer_->get_color_attachment(0)->bind();
+    glActiveTexture(GL_TEXTURE1);
+    geo_framebuffer_->get_color_attachment(1)->bind();
+    glActiveTexture(GL_TEXTURE2);
+    ssao_noise_texture_->bind();
+    glActiveTexture(GL_TEXTURE0);
+    ssao_program_->set_uniform("gPosition", 0);
+    ssao_program_->set_uniform("gNormal", 1);
+    ssao_program_->set_uniform("texNoise", 2);
+    const auto noise_scale = glm::vec2{
+            static_cast<float>(width_) / static_cast<float>(ssao_noise_texture_->get_width()),
+            static_cast<float>(height_) / static_cast<float>(ssao_noise_texture_->get_height()),
+    };
+    ssao_program_->set_uniform("noiseScale", noise_scale);
+    ssao_program_->set_uniform("radius", ssao_radius_);
+    ssao_program_->set_uniform("power", ssao_power_);
+    for (size_t i = 0; i < ssao_samples_.size(); ++i) {
+        auto sample_name = std::format("samples[{}]", i);
+        ssao_program_->set_uniform(sample_name, ssao_samples_[i]);
+    }
+    ssao_program_->set_uniform("transform", glm::scale(glm::mat4{1.0f}, glm::vec3{2.0f}));
+    ssao_program_->set_uniform("view", view);
+    ssao_program_->set_uniform("projection", projection);
+    plain_mesh_->draw(*ssao_program_);
+
+    // Blur SSAO result.
+    blur_framebuffer_->bind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, width_, height_);
+    blur_program_->use();
+    glActiveTexture(GL_TEXTURE0);
+    ssao_framebuffer_->get_color_attachment()->bind();
+    blur_program_->set_uniform("tex", 0);
+    blur_program_->set_uniform("transform", glm::scale(glm::mat4{1.0f}, glm::vec3{2.0f}));
+    plain_mesh_->draw(*blur_program_);
 
     // Set to default framebuffer.
     FrameBuffer::bind_to_default();
@@ -185,16 +258,20 @@ void Context::render() {
     glClearColor(clear_color_.r, clear_color_.g, clear_color_.b, clear_color_.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    // Render second path.
+    // Render last path.
     deferred_light_program_->use();
     for (size_t i = 0; i < 3; ++i) {
         glActiveTexture(GL_TEXTURE0 + i);
         geo_framebuffer_->get_color_attachment(i)->bind();
     }
+    glActiveTexture(GL_TEXTURE3);
+    blur_framebuffer_->get_color_attachment()->bind();
     glActiveTexture(GL_TEXTURE0);
     deferred_light_program_->set_uniform("gPosition", 0);
     deferred_light_program_->set_uniform("gNormal", 1);
     deferred_light_program_->set_uniform("gAlbedoSpec", 2);
+    deferred_light_program_->set_uniform("ssao", 3);
+    deferred_light_program_->set_uniform("useSsao", use_ssao_);
     for (size_t i = 0; i < deferred_lights_.size(); ++i) {
         auto pos_name = std::format("lights[{}].position", i);
         auto color_name = std::format("lights[{}].color", i);
@@ -291,7 +368,7 @@ void Context::render() {
 }
 
 void Context::draw_scene(const glm::mat4 &view, const glm::mat4 &projection, const Program &program) {
-    Object cubes[] = {
+    static const Object cubes[] = {
             {{0.0f, -0.5f, 0.0f}, {40.0f, 1.0f, 40.0f}, {1.0f, 0.0f, 0.0f}, 0.0f, cube_mesh_, floor_material_, false},
             {{-1.0f, 0.75f, -4.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 30.0f, cube_mesh_, cube_material1_, false},
             {{0.0f, 0.75f, 2.0f}, {1.5f, 1.5f, 1.5f}, {0.0f, 1.0f, 0.0f}, 20.0f, cube_mesh_, cube_material2_, false},
@@ -309,6 +386,14 @@ void Context::draw_scene(const glm::mat4 &view, const glm::mat4 &projection, con
         material->set_to_program(program);
         mesh->draw(program);
     }
+
+    auto model_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 0.55f, 0.0f}) *
+                           glm::rotate(glm::mat4{1.0f}, glm::radians(-90.0f), glm::vec3{1.0f, 0.0f, 0.0f}) *
+                           glm::scale(glm::mat4{1.0f}, glm::vec3{0.5f});
+    auto transform = projection * view * model_transform;
+    program.set_uniform("transform", transform);
+    program.set_uniform("modelTransform", model_transform);
+    backpack_model_->draw(program);
 }
 
 void Context::draw_ui() {
@@ -343,6 +428,10 @@ void Context::draw_ui() {
             ImGui::Separator();
             ImGui::DragFloat("Gamma", &gamma_, 0.01f, 0.0f, 2.0f);
             ImGui::Checkbox("Blinn-Phong", &blinn_);
+            ImGui::Separator();
+            ImGui::Checkbox("Use SSAO", &use_ssao_);
+            ImGui::DragFloat("SSAO radius", &ssao_radius_, 0.01f, 0.0f, 5.0f);
+            ImGui::DragFloat("SSAO power", &ssao_power_, 0.01f, 0.0f, 5.0f);
         }
         ImGui::Separator();
         ImGui::Checkbox("Animation", &animation_);
@@ -358,16 +447,28 @@ void Context::draw_ui() {
         ImGui::Image(shadow_map_->get_shadow_map()->get(), ImVec2{256, 256}, ImVec2{0, 1}, ImVec2{1, 0});
     }
     ImGui::End();
+
+    // G-buffer
     if (ImGui::Begin("G-buffer")) {
         const char *buffer_names[] = {"Position", "Normal", "Albedo/Specular"};
         static int buffer_select = 0;
         ImGui::Combo("buffer", &buffer_select, buffer_names, 3);
         float width = ImGui::GetContentRegionAvail().x;
         float height = width / aspect_ratio_;
-        auto selected_attachment = geo_framebuffer_->get_color_attachment(buffer_select);
-        ImGui::Image(
-                static_cast<ImTextureID>(selected_attachment->get()), ImVec2{width, height}, ImVec2{0, 1}, ImVec2{1, 0}
-        );
+        auto attachment = geo_framebuffer_->get_color_attachment(buffer_select);
+        ImGui::Image(static_cast<ImTextureID>(attachment->get()), ImVec2{width, height}, ImVec2{0, 1}, ImVec2{1, 0});
+    }
+    ImGui::End();
+
+    // SSAO buffer
+    if (ImGui::Begin("SSAO")) {
+        const char *buffer_names[] = {"Original", "Blurred"};
+        static int buffer_select = 0;
+        ImGui::Combo("Buffer", &buffer_select, buffer_names, 2);
+        float width = ImGui::GetContentRegionAvail().x;
+        float height = width / aspect_ratio_;
+        auto attachment = (buffer_select == 0 ? ssao_framebuffer_ : blur_framebuffer_)->get_color_attachment();
+        ImGui::Image(static_cast<ImTextureID>(attachment->get()), ImVec2{width, height}, ImVec2{0, 1}, ImVec2{1, 0});
     }
     ImGui::End();
 }
@@ -406,6 +507,8 @@ void Context::reshape(const int width, const int height) {
             Texture::create(width, height, GL_RGBA16F, GL_FLOAT),
             Texture::create(width, height, GL_RGBA),
     });
+    ssao_framebuffer_ = FrameBuffer::create({Texture::create(width, height, GL_RED, GL_FLOAT)});
+    blur_framebuffer_ = FrameBuffer::create({Texture::create(width, height, GL_RED, GL_FLOAT)});
 }
 
 void Context::mouse_move(const double x, const double y) {

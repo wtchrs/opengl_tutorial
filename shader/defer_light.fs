@@ -8,6 +8,9 @@ uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 
+uniform sampler2D ssao;
+uniform int useSsao;
+
 uniform vec3 viewPos;
 uniform struct {
     vec3 position;
@@ -23,7 +26,13 @@ void main() {
     vec3 albedo = albedoSpec.rgb;
     float spec = albedoSpec.a;
 
-    vec3 lighting = albedo * 0.1; // hard-coded ambient component
+    vec3 ambient = albedo * 0.4;
+    if (useSsao == 1) {
+        ambient *= texture2D(ssao, texCoord).r;
+    }
+
+    vec3 lighting = ambient;
+
     vec3 viewDir = normalize(viewPos - fragPos);
     for (int i = 0; i < NR_LIGHTS; ++i) {
         // diffuse
