@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
 
-set(PROJECT_NAME opengl_tutorial)
+set(PROJECT_NAME "glex")
+set(CORE "${PROJECT_NAME}_core")
 project(${PROJECT_NAME})
 
 set(CMAKE_CXX_STANDARD 23)
@@ -24,10 +25,8 @@ set(WINDOW_HEIGHT 480 CACHE STRING "Window height")
 
 # source files
 file(GLOB_RECURSE SOURCES
-    src/main.cpp
     src/buffer.cpp
     src/common.cpp
-    src/context.cpp
     src/framebuffer.cpp
     src/image.cpp
     src/mesh.cpp
@@ -39,11 +38,11 @@ file(GLOB_RECURSE SOURCES
     src/vertex_layout.cpp
 )
 
-# target
-add_executable(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Stb_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE
+# core library
+add_library(${CORE} ${SOURCES})
+target_include_directories(${CORE} PUBLIC include)
+target_include_directories(${CORE} PUBLIC ${Stb_INCLUDE_DIR})
+target_link_libraries(${CORE} PUBLIC
     assimp::assimp
     glfw
     glad::glad
@@ -51,8 +50,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     imgui::imgui
     spdlog::spdlog
 )
-target_compile_definitions(${PROJECT_NAME} PUBLIC
+target_compile_definitions(${CORE} PUBLIC
     WINDOW_NAME="${WINDOW_NAME}"
     WINDOW_WIDTH=${WINDOW_WIDTH}
     WINDOW_HEIGHT=${WINDOW_HEIGHT}
 )
+
+# test executables
+add_executable(ssao_test
+    example/main.cpp
+    example/ssao.cpp
+)
+target_link_libraries(ssao_test PRIVATE ${CORE})

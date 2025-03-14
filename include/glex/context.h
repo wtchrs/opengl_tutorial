@@ -3,113 +3,12 @@
 
 
 #include <memory>
-#include "glex/framebuffer.h"
-#include "glex/mesh.h"
-#include "glex/model.h"
 #include "glex/program.h"
-#include "glex/shadow_map.h"
 
 /// # Context
 ///
 /// A class that manages the OpenGL context, including shaders and buffer objects.
 class Context {
-    struct Light {
-        glm::vec3 position;
-        float distance;
-        bool directional;
-        glm::vec3 direction;
-        glm::vec2 cutoff; // inner cutoff angle, outer offset angle
-        glm::vec3 ambient;
-        glm::vec3 diffuse;
-        glm::vec3 specular;
-    };
-
-    struct DeferLight {
-        glm::vec3 position;
-        glm::vec3 color;
-    };
-
-    /// The shader programs used for rendering.
-    std::unique_ptr<Program> program_, simple_program_, texture_program_, postprocess_program_, skybox_program_,
-            env_map_program_, grass_program_, lighting_shadow_program_, normal_program_, deferred_geo_program_,
-            deferred_light_program_, ssao_program_, blur_program_;
-
-    std::unique_ptr<FrameBuffer> geo_framebuffer_;
-
-    /// The mesh object used for rendering vertices.
-    std::shared_ptr<Mesh> cube_mesh_, plain_mesh_;
-
-    std::unique_ptr<Buffer> grass_pos_buffer_;
-    std::unique_ptr<VertexLayout> grass_instance_;
-
-    std::shared_ptr<Material> floor_material_, cube_material1_, cube_material2_, window_material_, grass_material_;
-    std::unique_ptr<CubeTexture> cube_texture_;
-
-    std::unique_ptr<ShadowMap> shadow_map_;
-
-    std::unique_ptr<Texture> brick_diffuse_texture_, brick_normal_texture_;
-
-    ///@{
-    /// Default parameters
-    static constexpr float CAMERA_PITCH{-40.0f}; ///< Camera pitch
-    static constexpr float CAMERA_YAW{40.0f}; ///< Camera yaw
-
-    static constexpr glm::vec3 CAMERA_POS{3.0f, 6.0f, 6.0f}; ///< Camera position
-    static constexpr glm::vec3 CAMERA_FRONT{0.0f, 0.0f, -1.0f}; ///< Direction that camera is looking
-    static constexpr glm::vec3 CAMERA_UP{0.0f, 1.0f, 0.0f}; ///< Camera up vector
-
-    static constexpr Light LIGHT{
-            {2.0f, 4.0f, 4.0f},
-            150.0f,
-            false,
-            {-0.5f, -1.5f, -1.0f},
-            {50.0f, 5.0f},
-            {0.1f, 0.1f, 0.1f},
-            {0.5f, 0.5f, 0.5f},
-            {1.0f, 1.0f, 1.0f},
-    };
-    ///@}
-
-    /// Lighting parameters
-    Light light_ = LIGHT;
-    bool blinn_ = true;
-    float gamma_{1.0f};
-    bool flash_light_mode_{false};
-    std::vector<DeferLight> deferred_lights_{32};
-
-    /// SSAO
-    std::unique_ptr<FrameBuffer> ssao_framebuffer_;
-    std::unique_ptr<Model> backpack_model_;
-    std::unique_ptr<Texture> ssao_noise_texture_;
-    std::vector<glm::vec3> ssao_samples_{16};
-    float ssao_radius_{1.0f};
-    float ssao_power_{1.0f};
-    std::unique_ptr<FrameBuffer> blur_framebuffer_;
-    bool use_ssao_{false};
-
-    ///@{
-    /// Camera parameters
-    float camera_pitch_{CAMERA_PITCH}; ///< Camera pitch
-    float camera_yaw_{CAMERA_YAW}; ///< Camera yaw
-
-    glm::vec3 camera_pos_{CAMERA_POS}; ///< Camera position
-    glm::vec3 camera_front_{CAMERA_FRONT}; ///< Direction that camera is looking
-    glm::vec3 camera_up_{CAMERA_UP}; ///< Camera up vector
-
-    bool camera_rot_control_{false}; ///< Camera control flag
-    glm::vec2 prev_mouse_pos_{0.0f}; ///< Previous mouse position
-    ///@}
-
-    /// Window width and height
-    int width_{WINDOW_WIDTH}, height_{WINDOW_HEIGHT};
-    /// Aspect ratio of window
-    float aspect_ratio_{static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT)};
-
-    glm::vec4 clear_color_{0.1f, 0.2f, 0.3f, 0.0f};
-    float scale_{0.2};
-
-    bool animation_{true};
-
 public:
     /// ## Context::create
     ///
@@ -117,6 +16,8 @@ public:
     ///
     /// @returns `Context` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
     static std::unique_ptr<Context> create();
+
+    ~Context();
 
     /// ## Context::render
     ///
