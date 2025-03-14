@@ -159,6 +159,44 @@ std::unique_ptr<Mesh> Mesh::create_plain() {
     );
 }
 
+std::unique_ptr<Mesh> Mesh::create_sphere(const size_t lati_segment, const size_t longi_segment) {
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+
+    const size_t circle_vert_count = longi_segment + 1;
+    vertices.reserve((lati_segment + 1) * circle_vert_count);
+    for (size_t i = 0; i <= lati_segment; ++i) {
+        const float v = static_cast<float>(i) / static_cast<float>(lati_segment);
+        const float phi = (v - 0.5f) * glm::pi<float>();
+        const auto cos_phi = std::cosf(phi);
+        const auto sin_phi = std::sinf(phi);
+        for (size_t j = 0; j <= longi_segment; ++j) {
+            const float u = static_cast<float>(j) / static_cast<float>(longi_segment);
+            const float theta = u * glm::pi<float>() * 2.0f;
+            const auto cos_theta = std::cosf(theta);
+            const auto sin_theta = std::sinf(theta);
+            const auto point = glm::vec3{cos_phi * cos_theta, sin_phi, -cos_phi * sin_theta};
+            vertices.emplace_back(point * 0.5f, point, glm::vec2{u, v});
+        }
+    }
+
+    indices.reserve(lati_segment * longi_segment * 6);
+    for (size_t i = 0; i < lati_segment; ++i) {
+        for (size_t j = 0; j < longi_segment; ++j) {
+            size_t vertex_offset = i * circle_vert_count + j;
+            size_t index_offset = (i * longi_segment + j) * 6;
+            indices.emplace_back(vertex_offset);
+            indices.emplace_back(vertex_offset + 1);
+            indices.emplace_back(vertex_offset + 1 + circle_vert_count);
+            indices.emplace_back(vertex_offset);
+            indices.emplace_back(vertex_offset + 1 + circle_vert_count);
+            indices.emplace_back(vertex_offset + circle_vert_count);
+        }
+    }
+
+    return create(vertices, indices, GL_TRIANGLES);
+}
+
 void Mesh::draw(const Program &program) const {
     vertex_layout_->bind();
     if (material_) {

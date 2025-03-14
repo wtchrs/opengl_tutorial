@@ -62,3 +62,9 @@ add_executable(ssao_test
     example/ssao.cpp
 )
 target_link_libraries(ssao_test PRIVATE ${CORE})
+
+add_executable(pbr_test
+    example/main.cpp
+    example/pbr.cpp
+)
+target_link_libraries(pbr_test PRIVATE ${CORE})

@@ -2,6 +2,8 @@
 #define __MESH_H__
 
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include "glex/buffer.h"
@@ -151,6 +153,17 @@ public:
     /// @returns plain-shaped `Mesh` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization
     /// fails.
     static std::unique_ptr<Mesh> create_plain();
+
+    /// ## Mesh::create_sphere
+    ///
+    /// Creates and initializes a new `Mesh` object representing a sphere.
+    ///
+    /// @param lati_segment: The number of latitude segments.
+    /// @param longi_segment: The number of longitude segments.
+    ///
+    /// @returns sphere-shaped `Mesh` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization
+    /// fails.
+    static std::unique_ptr<Mesh> create_sphere(const size_t lati_segment = 16, const size_t longi_segment = 32);
 
     /// ## Mesh::get_vertex_layout
     ///
