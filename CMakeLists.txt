@@ -68,3 +68,9 @@ add_executable(pbr_test
     example/pbr.cpp
 )
 target_link_libraries(pbr_test PRIVATE ${CORE})
+
+add_executable(pbr_texture_test
+    example/main.cpp
+    example/pbr_texture.cpp
+)
+target_link_libraries(pbr_texture_test PRIVATE ${CORE})
