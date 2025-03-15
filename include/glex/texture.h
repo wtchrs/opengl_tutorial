@@ -2,6 +2,7 @@
 #define __TEXTURE_H__
 
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -48,7 +49,7 @@
 class Texture {
     const uint32_t texture_;
 
-    const int width_, height_;
+    const size_t width_, height_;
     const uint32_t format_;
     const uint32_t type_;
 
@@ -70,7 +71,8 @@ public:
     /// This Texture object has `GL_LINEAR` min and mag filters, and `GL_CLAMP_TO_EDGE` wrap modes as default.
     ///
     /// @returns `Texture` object wrapped in `std::unique_ptr` if successful, or `nullptr` if initialization fails.
-    static std::unique_ptr<Texture> create(int width, int height, uint32_t format, uint32_t type = GL_UNSIGNED_BYTE);
+    static std::unique_ptr<Texture>
+    create(size_t width, size_t height, uint32_t format, uint32_t type = GL_UNSIGNED_BYTE);
 
     /// ## Texture::~Texture
     ///
@@ -89,7 +91,7 @@ public:
     ///
     /// @returns width of texture.
     [[nodiscard]]
-    int get_width() const {
+    size_t get_width() const {
         return width_;
     }
 
@@ -97,7 +99,7 @@ public:
     ///
     /// @returns height of texture.
     [[nodiscard]]
-    int get_height() const {
+    size_t get_height() const {
         return height_;
     }
 
@@ -152,7 +154,7 @@ public:
     void set_border_color(const glm::vec4 &color) const;
 
 private:
-    Texture(uint32_t texture_id, int width, int height, uint32_t format, uint32_t type);
+    Texture(uint32_t texture_id, size_t width, size_t height, uint32_t format, uint32_t type);
 };
 
 

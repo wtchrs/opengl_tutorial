@@ -7,14 +7,18 @@
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
 
-static GLenum channels_to_format(int channels) {
-    switch (channels) {
-    case 1: return GL_RED;
-    case 2: return GL_RG;
-    case 3: return GL_RGB;
-    default: return GL_RGBA;
+namespace {
+
+    constexpr GLenum channels_to_format(size_t channels, bool is_float = false) {
+        switch (channels) {
+        case 1: return is_float ? GL_R16F : GL_RED;
+        case 2: return is_float ? GL_RG16F : GL_RG;
+        case 3: return is_float ? GL_RGB16F : GL_RGB;
+        default: return is_float ? GL_RGBA16F : GL_RGBA;
+        }
     }
-}
+
+} // namespace
 
 std::unique_ptr<Texture> Texture::create(const Image &image) {
     uint32_t texture_id;
@@ -24,8 +28,10 @@ std::unique_ptr<Texture> Texture::create(const Image &image) {
         return nullptr;
     }
     const auto format = channels_to_format(image.get_channels());
+    const auto texture_format = channels_to_format(image.get_channels(), image.get_bytes_per_channel() == 4);
+    const uint32_t type = image.get_bytes_per_channel() == 4 ? GL_FLOAT : GL_UNSIGNED_BYTE;
     auto texture = std::unique_ptr<Texture>{
-            new Texture{texture_id, image.get_width(), image.get_height(), format, GL_UNSIGNED_BYTE}
+            new Texture{texture_id, image.get_width(), image.get_height(), texture_format, type}
     };
     texture->bind();
     // Set default filter and wrap.
@@ -33,8 +39,7 @@ std::unique_ptr<Texture> Texture::create(const Image &image) {
     texture->set_filter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
     texture->set_wrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
     glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGBA, image.get_width(), image.get_height(), 0, format, GL_UNSIGNED_BYTE,
-            image.get_data()
+            GL_TEXTURE_2D, 0, texture_format, image.get_width(), image.get_height(), 0, format, type, image.get_data()
     );
     glGenerateMipmap(GL_TEXTURE_2D);
     SPDLOG_INFO(
@@ -45,7 +50,7 @@ std::unique_ptr<Texture> Texture::create(const Image &image) {
     return std::move(texture);
 }
 
-std::unique_ptr<Texture> Texture::create(int width, int height, uint32_t format, uint32_t type) {
+std::unique_ptr<Texture> Texture::create(size_t width, size_t height, uint32_t format, uint32_t type) {
     uint32_t texture_id;
     glGenTextures(1, &texture_id);
     if (const auto error = glGetError(); error != GL_NO_ERROR) {
@@ -71,7 +76,7 @@ std::unique_ptr<Texture> Texture::create(int width, int height, uint32_t format,
     return texture;
 }
 
-Texture::Texture(uint32_t texture_id, int width, int height, uint32_t format, uint32_t type)
+Texture::Texture(uint32_t texture_id, size_t width, size_t height, uint32_t format, uint32_t type)
     : texture_{texture_id}
     , width_{width}
     , height_{height}
@@ -130,11 +135,13 @@ CubeTexture::create_from_images(const std::vector<std::reference_wrapper<const I
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     // Apply each images to cube map texture.
     for (size_t i = 0; i < images.size(); ++i) {
-        auto &image = images[i].get();
-        auto format = channels_to_format(image.get_channels());
+        const auto &image = images[i].get();
+        const auto format = channels_to_format(image.get_channels());
+        const auto texture_format = channels_to_format(image.get_channels(), image.get_bytes_per_channel() == 4);
+        const uint32_t type = image.get_bytes_per_channel() == 4 ? GL_FLOAT : GL_UNSIGNED_BYTE;
         glTexImage2D(
-                GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<uint32_t>(i), 0, GL_RGB, image.get_width(),
-                image.get_height(), 0, format, GL_UNSIGNED_BYTE, image.get_data()
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<uint32_t>(i), 0, texture_format, image.get_width(),
+                image.get_height(), 0, format, type, image.get_data()
         );
     }
     SPDLOG_INFO("Cube texture has been created: {}", texture_id);

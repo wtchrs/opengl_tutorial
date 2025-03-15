@@ -2,6 +2,7 @@
 #define __IMAGE_H__
 
 
+#include <cstddef>
 #include <cstdint>
 #include <glm/vec4.hpp>
 #include <memory>
@@ -11,9 +12,10 @@
 ///
 /// A class that encapsulates an image loaded from a file.
 class Image {
-    const int width_;
-    const int height_;
-    const int channels_;
+    const size_t width_;
+    const size_t height_;
+    const size_t channels_;
+    const size_t bytes_per_channel_;
     uint8_t *const data_;
 
     const std::string filepath_;
@@ -37,9 +39,11 @@ public:
     /// @param width: The width of the image.
     /// @param height: The height of the image.
     /// @param channels: The number of color channels in the image (default is 4).
+    /// @param bytes_per_channel: The number of bytes per channel.
     ///
     /// @returns `std::unique_ptr` to an `Image` object if successful, or `nullptr` if creation fails.
-    static std::unique_ptr<Image> create(int width, int height, int channels = 4);
+    static std::unique_ptr<Image>
+    create(size_t width, size_t height, size_t channels = 4, size_t bytes_per_channel = 1);
 
     /// ## Image::~Image
     ///
@@ -58,7 +62,7 @@ public:
     ///
     /// @returns width of the image.
     [[nodiscard]]
-    int get_width() const {
+    size_t get_width() const {
         return width_;
     }
 
@@ -66,7 +70,7 @@ public:
     ///
     /// @returns height of the image.
     [[nodiscard]]
-    int get_height() const {
+    size_t get_height() const {
         return height_;
     }
 
@@ -74,8 +78,16 @@ public:
     ///
     /// @returns number of color channels in the image.
     [[nodiscard]]
-    int get_channels() const {
+    size_t get_channels() const {
         return channels_;
+    }
+
+    /// ## Image::get_bytes_per_channel
+    ///
+    /// @returns number of bytes per channels in the image.
+    [[nodiscard]]
+    size_t get_bytes_per_channel() const {
+        return bytes_per_channel_;
     }
 
     /// ## Image::set_check_image
@@ -108,8 +120,10 @@ private:
     /// @param width: The width of the image.
     /// @param height: The height of the image.
     /// @param channels: The number of color channels in the image.
+    /// @param bytes_per_channel: The number of bytes per channel.
     /// @param data: A pointer to the raw pixel data.
-    Image(int width, int height, int channels, uint8_t *data, const std::string &filepath);
+    Image(size_t width, size_t height, size_t channels, size_t bytes_per_channel, uint8_t *data,
+          const std::string &filepath);
 };
 
 
