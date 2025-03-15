@@ -27,6 +27,7 @@ set(WINDOW_HEIGHT 480 CACHE STRING "Window height")
 file(GLOB_RECURSE SOURCES
     src/buffer.cpp
     src/common.cpp
+    src/context.cpp
     src/framebuffer.cpp
     src/image.cpp
     src/mesh.cpp
