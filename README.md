@@ -40,7 +40,7 @@ Run the following commands to build and launch this project:
 ```sh
 cmake --preset default
 cmake --build build
-./build/opengl_tutorial
+./build/ibl_test # or any other examples
 ```
 
 For more details on configuring `vcpkg` and `cmake`, visit https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-bash
