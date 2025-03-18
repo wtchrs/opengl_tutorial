@@ -5,6 +5,8 @@ in vec3 normal;
 in vec2 texCoord;
 
 uniform vec3 viewPos;
+uniform samplerCube irradianceMap;
+uniform int useIrradiance;
 
 const int LIGHT_COUNT = 4;
 uniform struct {
@@ -36,9 +38,9 @@ float distributionGGX(vec3 normal, vec3 halfDir, float roughness) {
 float geometrySchlickGGX(float dotNV, float roughness) {
     float r = roughness + 1.0;
     float k = r * r / 8.0;
-    float num = dotNV;
+    float nom = dotNV;
     float denom = dotNV * (1.0 - k) + k;
-    return num / denom;
+    return nom / denom;
 }
 
 float geometrySmith(vec3 normal, vec3 viewDir, vec3 lightDir, float roughness) {
@@ -51,6 +53,10 @@ float geometrySmith(vec3 normal, vec3 viewDir, vec3 lightDir, float roughness) {
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
+    return F0 + (max(F0, vec3(1.0 - roughness)) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 void main() {
@@ -95,7 +101,17 @@ void main() {
         outRadiance += (kD * albedo / PI + specular) * radiance * dotNL;
     }
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 ambient;
+    if (useIrradiance == 0) {
+        ambient = vec3(0.03) * albedo * ao;
+    } else {
+        vec3 kS = fresnelSchlickRoughness(dotNV, F0, roughness);
+        vec3 kD = 1.0 - kS;
+        vec3 irradiance = textureCube(irradianceMap, fragNormal).rgb;
+        vec3 diffuse = irradiance * albedo;
+        ambient = (kD * diffuse) * ao;
+    }
+
     vec3 color = ambient + outRadiance;
 
     // Reinhard tone mapping (HDR) + gamma correction

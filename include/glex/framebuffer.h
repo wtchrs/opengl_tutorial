@@ -86,5 +86,42 @@ private:
     bool init() const;
 };
 
+class CubeFrameBuffer {
+    const uint32_t framebuffer_id_;
+    const uint32_t depth_stencil_buffer_id_;
+    const uint32_t mip_level_;
+    const std::shared_ptr<CubeTexture> color_attachment_;
+
+public:
+    static std::unique_ptr<CubeFrameBuffer>
+    create(const std::shared_ptr<CubeTexture> &color_attachment, uint32_t mip_level = 0);
+
+    ~CubeFrameBuffer();
+
+    [[nodiscard]]
+    const uint32_t get() const {
+        return framebuffer_id_;
+    }
+
+    [[nodiscard]]
+    const std::shared_ptr<CubeTexture> get_color_attachment() const {
+        return color_attachment_;
+    }
+
+    void bind(int cube_index = 0) const;
+
+private:
+    CubeFrameBuffer(
+            uint32_t framebuffer_id, uint32_t depth_stencil_buffer_id, std::shared_ptr<CubeTexture> color_attachment,
+            uint32_t mip_level
+    )
+        : framebuffer_id_{framebuffer_id}
+        , depth_stencil_buffer_id_{depth_stencil_buffer_id}
+        , color_attachment_{color_attachment}
+        , mip_level_{mip_level} {}
+
+    bool init();
+};
+
 
 #endif // __FRAMEBUFFER_H__

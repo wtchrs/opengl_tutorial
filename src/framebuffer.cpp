@@ -1,6 +1,7 @@
 #include "glex/framebuffer.h"
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include "glex/common.h"
 
@@ -55,6 +56,8 @@ bool FrameBuffer::init() const {
         }
         // The draw buffers setting is specific to each framebuffer. So, when switching between framebuffers,
         // the draw buffers setting is automatically restored to the previously set value for that framebuffer.
+        // (It isn't necessary to call `glDrawBuffers` if only one color attachments(GL_COLOR_ATTACHMENT0) is needed
+        // because `GL_COLOR_ATTACHMENT0` is the default draw buffer.)
         glDrawBuffers(size, attachments.data());
     }
 
@@ -75,5 +78,63 @@ bool FrameBuffer::init() const {
     }
 
     bind_to_default();
+    return true;
+}
+
+std::unique_ptr<CubeFrameBuffer>
+CubeFrameBuffer::create(const std::shared_ptr<CubeTexture> &color_attachment, uint32_t mip_level) {
+    uint32_t framebuffer_id;
+    glGenFramebuffers(1, &framebuffer_id);
+    uint32_t renderbuffer_id;
+    glGenRenderbuffers(1, &renderbuffer_id);
+    auto framebuffer = std::unique_ptr<CubeFrameBuffer>{
+            new CubeFrameBuffer{framebuffer_id, renderbuffer_id, color_attachment, mip_level}
+    };
+    if (!framebuffer->init()) {
+        SPDLOG_ERROR("Failed to create cube framebuffer");
+        return nullptr;
+    }
+    SPDLOG_INFO("FrameBuffer created: framebuffer: {}, renderbuffer: {}", framebuffer_id, renderbuffer_id);
+    return std::move(framebuffer);
+}
+
+CubeFrameBuffer::~CubeFrameBuffer() {
+    if (depth_stencil_buffer_id_) {
+        glDeleteRenderbuffers(1, &depth_stencil_buffer_id_);
+    }
+    if (framebuffer_id_) {
+        glDeleteFramebuffers(1, &framebuffer_id_);
+    }
+}
+
+void CubeFrameBuffer::bind(int cube_index) const {
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_id_);
+    glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + cube_index, color_attachment_->get(),
+            mip_level_
+    );
+}
+
+bool CubeFrameBuffer::init() {
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_id_);
+    glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X, color_attachment_->get(), mip_level_
+    );
+
+    size_t width = color_attachment_->get_width() >> mip_level_;
+    size_t height = color_attachment_->get_height() >> mip_level_;
+    glBindRenderbuffer(GL_RENDERBUFFER, depth_stencil_buffer_id_);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depth_stencil_buffer_id_);
+
+    if (auto result = glCheckFramebufferStatus(GL_FRAMEBUFFER); result != GL_FRAMEBUFFER_COMPLETE) {
+        SPDLOG_ERROR("Failed to initialize cube framebuffer: 0x{:04x}", result);
+        FrameBuffer::bind_to_default();
+        return false;
+    }
+
+    FrameBuffer::bind_to_default();
     return true;
 }

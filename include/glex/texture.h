@@ -160,10 +160,17 @@ private:
 
 class CubeTexture {
     const uint32_t cube_texture_;
+    const size_t width_;
+    const size_t height_;
+    const uint32_t format_;
+    const uint32_t type_;
 
 public:
     static std::unique_ptr<CubeTexture>
     create_from_images(const std::vector<std::reference_wrapper<const Image>> &images);
+
+    static std::unique_ptr<CubeTexture>
+    create(size_t width, size_t height, uint32_t format, uint32_t type = GL_UNSIGNED_BYTE);
 
     ~CubeTexture();
 
@@ -172,11 +179,37 @@ public:
         return cube_texture_;
     }
 
+    [[nodiscard]]
+    size_t get_width() const {
+        return width_;
+    }
+
+    [[nodiscard]]
+    size_t get_height() const {
+        return height_;
+    }
+
+    [[nodiscard]]
+    size_t get_format() const {
+        return format_;
+    }
+
+    [[nodiscard]]
+    size_t get_type() const {
+        return type_;
+    }
+
     void bind() const;
 
+    void generate_mipmap() const;
+
 private:
-    explicit CubeTexture(uint32_t texture_id)
-        : cube_texture_{texture_id} {}
+    explicit CubeTexture(uint32_t texture_id, size_t width, size_t height, uint32_t format, uint32_t type)
+        : cube_texture_{texture_id}
+        , width_{width}
+        , height_{height}
+        , format_{format}
+        , type_{type} {}
 };
 
 
